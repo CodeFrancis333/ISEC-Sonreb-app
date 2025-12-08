@@ -1,23 +1,13 @@
 // mobile/types/auth.ts
 
-export type User = {
-  id: string;
+export interface User {
+  id: number;
   name: string;
   email: string;
-};
+}
 
-export type AuthResponse = {
+export interface AuthResult {
   user: User;
-  token: string;
-};
-
-export type LoginPayload = {
-  email: string;
-  password: string;
-};
-
-export type RegisterPayload = {
-  name: string;
-  email: string;
-  password: string;
-};
+  token: string;      // access token
+  refresh?: string;   // optional
+}

@@ -1,51 +1,70 @@
 // mobile/components/ui/Button.tsx
 import React from "react";
-import { Pressable, Text, ActivityIndicator } from "react-native";
+import { Text, TouchableOpacity, ActivityIndicator } from "react-native";
 
 type ButtonVariant = "primary" | "secondary" | "ghost";
 
-type ButtonProps = {
-  title: string;
-  onPress?: () => void;
+export interface ButtonProps {
+  children?: React.ReactNode;                // for <Button>Label</Button>
+  label?: string;                            // optional alternative: <Button label="Label" />
+  onPress?: () => void | Promise<void>;
   disabled?: boolean;
   loading?: boolean;
   variant?: ButtonVariant;
-  fullWidth?: boolean;
-};
+  className?: string;                        // extra Tailwind classes (NativeWind)
+}
 
 const baseClasses =
-  "flex-row items-center justify-center rounded-xl py-3";
+  "w-full rounded-xl px-4 py-3 items-center justify-center flex-row";
 
-const variants: Record<ButtonVariant, string> = {
-  primary: "bg-emerald-600",
-  secondary: "bg-slate-700",
+const variantClasses: Record<ButtonVariant, string> = {
+  primary: "bg-emerald-600 active:bg-emerald-500",
+  secondary: "bg-slate-700 active:bg-slate-600",
   ghost: "bg-transparent border border-slate-600",
 };
 
+const textVariantClasses: Record<ButtonVariant, string> = {
+  primary: "text-white",
+  secondary: "text-white",
+  ghost: "text-slate-100",
+};
+
 export default function Button({
-  title,
+  children,
+  label,
   onPress,
-  disabled,
-  loading,
+  disabled = false,
+  loading = false,
   variant = "primary",
-  fullWidth = true,
+  className = "",
 }: ButtonProps) {
-  const opacity = disabled || loading ? "opacity-60" : "opacity-100";
-  const width = fullWidth ? "w-full" : "";
+  const isDisabled = disabled || loading;
+
+  const content = children ?? (
+    <Text className={`text-sm font-semibold ${textVariantClasses[variant]}`}>
+      {label}
+    </Text>
+  );
 
   return (
-    <Pressable
-      disabled={disabled || loading}
+    <TouchableOpacity
+      className={`${baseClasses} ${variantClasses[variant]} ${
+        isDisabled ? "opacity-60" : ""
+      } ${className}`}
       onPress={onPress}
-      className={`${baseClasses} ${variants[variant]} ${opacity} ${width}`}
+      disabled={isDisabled}
+      activeOpacity={0.85}
     >
-      {loading ? (
-        <ActivityIndicator color="#fff" />
-      ) : (
-        <Text className="text-white font-semibold text-base">
-          {title}
-        </Text>
+      {loading && (
+        <ActivityIndicator size="small" className="mr-2" />
       )}
-    </Pressable>
+      {typeof content === "string" ? (
+        <Text className={`text-sm font-semibold ${textVariantClasses[variant]}`}>
+          {content}
+        </Text>
+      ) : (
+        content
+      )}
+    </TouchableOpacity>
   );
 }

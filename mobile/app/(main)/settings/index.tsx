@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { View, Text, Switch, ScrollView } from "react-native";
 import Screen from "../../../components/layout/Screen";
+import { APP_VERSION } from "../../../constants";
 
 export default function SettingsScreen() {
   const [useMpa, setUseMpa] = useState(true);
@@ -12,6 +13,8 @@ export default function SettingsScreen() {
   return (
     <Screen>
       <ScrollView className="flex-1">
+
+        {/* Header */}
         <Text className="text-xs text-emerald-400 uppercase">
           Settings
         </Text>
@@ -28,43 +31,31 @@ export default function SettingsScreen() {
             Units
           </Text>
 
+          {/* Strength units */}
           <View className="flex-row justify-between items-center mb-3">
             <View>
-              <Text className="text-slate-200 text-xs">
-                Strength Units
-              </Text>
-              <Text className="text-slate-400 text-xs">
-                MPa or psi
-              </Text>
+              <Text className="text-slate-200 text-xs">Strength Units</Text>
+              <Text className="text-slate-400 text-xs">MPa or psi</Text>
             </View>
             <View className="flex-row items-center gap-2">
               <Text className="text-slate-400 text-xs">
                 {useMpa ? "MPa" : "psi"}
               </Text>
-              <Switch
-                value={useMpa}
-                onValueChange={setUseMpa}
-              />
+              <Switch value={useMpa} onValueChange={setUseMpa} />
             </View>
           </View>
 
+          {/* Velocity units */}
           <View className="flex-row justify-between items-center">
             <View>
-              <Text className="text-slate-200 text-xs">
-                Velocity Units
-              </Text>
-              <Text className="text-slate-400 text-xs">
-                m/s or km/s
-              </Text>
+              <Text className="text-slate-200 text-xs">Velocity Units</Text>
+              <Text className="text-slate-400 text-xs">m/s or km/s</Text>
             </View>
             <View className="flex-row items-center gap-2">
               <Text className="text-slate-400 text-xs">
                 {useMs ? "m/s" : "km/s"}
               </Text>
-              <Switch
-                value={useMs}
-                onValueChange={setUseMs}
-              />
+              <Switch value={useMs} onValueChange={setUseMs} />
             </View>
           </View>
         </View>
@@ -97,6 +88,7 @@ export default function SettingsScreen() {
             Model Behavior
           </Text>
 
+          {/* Use calibrated model */}
           <View className="flex-row justify-between items-center mb-3">
             <View>
               <Text className="text-slate-200 text-xs">
@@ -112,6 +104,7 @@ export default function SettingsScreen() {
             />
           </View>
 
+          {/* Show model details */}
           <View className="flex-row justify-between items-center">
             <View>
               <Text className="text-slate-200 text-xs">
@@ -128,15 +121,13 @@ export default function SettingsScreen() {
           </View>
         </View>
 
-        <View className="rounded-xl bg-slate-800 p-4">
-          <Text className="text-slate-300 text-xs mb-1">
-            Profile info (optional in future)
-          </Text>
+        {/* Version */}
+        <View className="items-center mt-6 mb-8">
           <Text className="text-slate-500 text-xs">
-            Later versions can show engineer name, company, license
-            number, and export settings here.
+            Version {APP_VERSION}
           </Text>
         </View>
+
       </ScrollView>
     </Screen>
   );

@@ -1,50 +1,35 @@
 // mobile/services/authService.ts
-import { apiRequest } from "./apiClient";
+import { apiClient } from "./apiClient";
+import { AuthResult } from "../types/auth";
 
-export type AuthUser = {
-  id: string;
-  name: string;
-  email: string;
-};
-
-export type AuthResponse = {
-  user: AuthUser;
-  token: string;
-};
-
-export type LoginPayload = {
-  email: string;
-  password: string;
-};
-
-export type RegisterPayload = {
-  name: string;
-  email: string;
-  password: string;
-};
-
-export async function login(payload: LoginPayload): Promise<AuthResponse> {
-  // Expected Django endpoint: /api/auth/login/
-  return apiRequest<AuthResponse>("/auth/login/", {
-    method: "POST",
-    body: payload,
-  });
+export async function login(
+  email: string,
+  password: string,
+): Promise<AuthResult> {
+  // /auth/login/ -> http://IP:8000/api/auth/login/
+  const data = await apiClient.post<AuthResult>(
+    "/auth/login/",
+    { email, password },
+    false, // auth = false (no Authorization header for login)
+  );
+  return data;
 }
 
 export async function register(
-  payload: RegisterPayload
-): Promise<AuthResponse> {
-  // Expected Django endpoint: /api/auth/register/
-  return apiRequest<AuthResponse>("/auth/register/", {
-    method: "POST",
-    body: payload,
-  });
+  name: string,
+  email: string,
+  password: string,
+): Promise<AuthResult> {
+  const data = await apiClient.post<AuthResult>(
+    "/auth/register/",
+    { name, email, password },
+    false,
+  );
+  return data;
 }
 
-export async function getCurrentUser(token: string): Promise<AuthUser> {
-  // Expected Django endpoint: /api/auth/me/
-  return apiRequest<AuthUser>("/auth/me/", {
-    method: "GET",
-    token,
-  });
+// optional, in case you later want /auth/me/
+export async function me() {
+  const data = await apiClient.get("/auth/me/");
+  return data;
 }

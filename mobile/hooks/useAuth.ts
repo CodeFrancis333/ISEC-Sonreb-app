@@ -1,75 +1,63 @@
 // mobile/hooks/useAuth.ts
 import { useCallback } from "react";
-import { useAuthStore, AuthUser } from "../store/authStore";
+import { router } from "expo-router";
+import { useAuthStore } from "../store/authStore";
+import * as authService from "../services/authService";
 
-export default function useAuth() {
-  const {
-    user,
-    token,
-    loading,
-    error,
-    setLoading,
-    setError,
-    loginSuccess,
-    logout,
-  } = useAuthStore();
+export function useAuth() {
+  const { user, token, loading, error, setUserAndToken, clearAuth, setLoading, setError } =
+    useAuthStore();
 
-  const login = useCallback(
+  const handleLogin = useCallback(
     async (email: string, password: string) => {
-      setLoading(true);
       try {
-        // TODO: replace with real backend call later
-        const fakeUser: AuthUser = {
-          id: "1",
-          name: "Engineer",
-          email,
-        };
+        setLoading(true);
+        setError(null);
+        const res = await authService.login(email.trim(), password);
+        setUserAndToken(res.user, res.token);
 
-        loginSuccess({ user: fakeUser, token: "dummy-token" });
-        return true;
-      } catch (err) {
-        console.error(err);
-        setError("Unable to login. Please try again.");
-        return false;
+        // Navigate to main dashboard group
+        router.replace("/(main)");
+      } catch (err: any) {
+        setError(err.message || "Login failed.");
+        throw err;
+      } finally {
+        setLoading(false);
       }
     },
-    [loginSuccess, setError, setLoading]
+    [setUserAndToken, setLoading, setError],
   );
 
-  const register = useCallback(
+  const handleRegister = useCallback(
     async (name: string, email: string, password: string) => {
-      setLoading(true);
       try {
-        // TODO: replace with real backend call later
-        const fakeUser: AuthUser = {
-          id: "1",
-          name,
-          email,
-        };
-
-        loginSuccess({ user: fakeUser, token: "dummy-token" });
-        return true;
-      } catch (err) {
-        console.error(err);
-        setError("Unable to create account. Please try again.");
-        return false;
+        setLoading(true);
+        setError(null);
+        const res = await authService.register(name.trim(), email.trim(), password);
+        setUserAndToken(res.user, res.token);
+        router.replace("/(main)");
+      } catch (err: any) {
+        setError(err.message || "Registration failed.");
+        throw err;
+      } finally {
+        setLoading(false);
       }
     },
-    [loginSuccess, setError, setLoading]
+    [setUserAndToken, setLoading, setError],
   );
 
-  const handleLogout = useCallback(() => {
-    logout();
-  }, [logout]);
+  const logout = useCallback(() => {
+    clearAuth();
+    router.replace("/(auth)/welcome");
+  }, [clearAuth]);
 
   return {
     user,
     token,
     loading,
     error,
-    login,
-    register,
-    logout: handleLogout,
-    isAuthenticated: !!user,
+    login: handleLogin,
+    register: handleRegister,
+    logout,
   };
 }

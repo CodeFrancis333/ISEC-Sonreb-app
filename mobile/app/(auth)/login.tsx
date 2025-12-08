@@ -1,77 +1,85 @@
 import React, { useState } from "react";
-import { View, Text, TouchableOpacity } from "react-native";
-import { Link, useRouter } from "expo-router";
+import { View, Text, TouchableOpacity, Alert } from "react-native";
+import { Link } from "expo-router";
 import Screen from "../../components/layout/Screen";
 import Input from "../../components/ui/Input";
 import Button from "../../components/ui/Button";
-import useAuth from "../../hooks/useAuth";
+import { useAuth } from "../../hooks/useAuth";
 
 export default function LoginScreen() {
-  const router = useRouter();
   const { login, loading, error } = useAuth();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
-  const handleSubmit = async () => {
-    const ok = await login(email, password);
-    if (ok) {
-      router.replace("/(main)");
+  const handleLogin = async () => {
+    if (!email || !password) {
+      Alert.alert("Missing fields", "Please enter email and password.");
+      return;
+    }
+    try {
+      await login(email, password); // useAuth will navigate on success
+    } catch {
+      // error already stored in state and shown below
     }
   };
 
   return (
     <Screen>
-      <View className="flex-1">
-        <Text className="text-xl font-bold text-white mb-2">
-          Login
+      <View className="flex-1 justify-center">
+        <Text className="text-xs text-emerald-400 uppercase mb-1">
+          Welcome back
         </Text>
-        <Text className="text-slate-300 mb-6">
-          Continue to your SonReb projects.
+        <Text className="text-2xl font-bold text-white mb-2">
+          Login to SONREB App
+        </Text>
+        <Text className="text-slate-400 text-xs mb-6">
+          Continue estimating in-place concrete strength from your calibrated
+          SonReb models.
         </Text>
 
-        {error && (
-          <View className="mb-4 rounded-lg bg-red-500/10 border border-red-500/40 px-3 py-2">
-            <Text className="text-xs text-red-300">{error}</Text>
-          </View>
-        )}
+        {error ? (
+          <Text className="text-red-400 text-xs mb-3">{error}</Text>
+        ) : null}
 
-        <Input
-          label="Email"
-          value={email}
-          onChangeText={setEmail}
-          keyboardType="email-address"
-          autoCapitalize="none"
-          placeholder="you@example.com"
-        />
+        <View className="gap-3 mb-4">
+          <Input
+            label="Email"
+            value={email}
+            onChangeText={setEmail}
+            keyboardType="email-address"
+            autoCapitalize="none"
+          />
+          <Input
+            label="Password"
+            value={password}
+            onChangeText={setPassword}
+            secureTextEntry
+          />
+        </View>
 
-        <Input
-          label="Password"
-          value={password}
-          onChangeText={setPassword}
-          secureTextEntry
-          placeholder="••••••••"
-        />
+        <Button onPress={handleLogin} disabled={loading} variant="primary">
+          {loading ? "Logging in..." : "Login"}
+        </Button>
 
-        <Button
-          title={loading ? "Logging in..." : "Login"}
-          onPress={handleSubmit}
-          disabled={loading}
-        />
-
-        <View className="mt-4 flex-row justify-between items-center">
+        <View className="flex-row justify-between items-center mt-4">
           <Link href="/(auth)/register" asChild>
             <TouchableOpacity>
-              <Text className="text-xs text-emerald-300">
+              <Text className="text-emerald-400 text-xs">
                 Create an account
               </Text>
             </TouchableOpacity>
           </Link>
 
-          <TouchableOpacity>
-            <Text className="text-xs text-slate-400">
-              Forgot password?
-            </Text>
+          <TouchableOpacity
+            onPress={() =>
+              Alert.alert(
+                "Coming soon",
+                "Password reset will be available in a future version.",
+              )
+            }
+          >
+            <Text className="text-slate-400 text-xs">Forgot password?</Text>
           </TouchableOpacity>
         </View>
       </View>

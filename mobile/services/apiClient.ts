@@ -1,70 +1,56 @@
 // mobile/services/apiClient.ts
 import { API_BASE_URL } from "../constants";
+import { useAuthStore } from "../store/authStore";
 
-export type HttpMethod = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
+type HttpMethod = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
 
-export type ApiRequestOptions = {
+interface RequestOptions {
   method?: HttpMethod;
-  body?: unknown;
-  token?: string | null;
-  headers?: Record<string, string>;
-};
+  body?: any;
+  auth?: boolean; // whether to send Authorization header
+}
 
-export type ApiError = {
-  status: number;
-  message: string;
-  details?: unknown;
-};
+async function apiRequest<T>(path: string, options: RequestOptions = {}): Promise<T> {
+  const { method = "GET", body, auth = true } = options;
 
-async function handleResponse<T>(res: Response): Promise<T> {
-  const text = await res.text();
-  const data = text ? JSON.parse(text) : null;
+  const token = useAuthStore.getState().token;
 
-  if (!res.ok) {
-    const err: ApiError = {
-      status: res.status,
-      message: (data && (data.detail || data.message)) || res.statusText,
-      details: data,
-    };
-    throw err;
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+  };
+
+  if (auth && token) {
+    headers["Authorization"] = `Bearer ${token}`;
+  }
+
+  const url = `${API_BASE_URL}${path}`;
+
+  const response = await fetch(url, {
+    method,
+    headers,
+    body: body ? JSON.stringify(body) : undefined,
+  });
+
+  const text = await response.text();
+  const data = text ? (JSON.parse(text) as any) : null;
+
+  if (!response.ok) {
+    const detail = data?.detail || "Unknown error from server.";
+    throw new Error(detail);
   }
 
   return data as T;
 }
 
-/**
- * Generic API request helper.
- * `path` is relative to API_BASE_URL (e.g. "/auth/login/").
- */
-export async function apiRequest<T>(
-  path: string,
-  options: ApiRequestOptions = {}
-): Promise<T> {
-  const { method = "GET", body, token, headers = {} } = options;
-
-  const url = `${API_BASE_URL}${path}`;
-
-  const finalHeaders: Record<string, string> = {
-    Accept: "application/json",
-    ...headers,
-  };
-
-  let finalBody: BodyInit | undefined;
-
-  if (body !== undefined && body !== null) {
-    finalHeaders["Content-Type"] = "application/json";
-    finalBody = JSON.stringify(body);
-  }
-
-  if (token) {
-    finalHeaders["Authorization"] = `Bearer ${token}`;
-  }
-
-  const res = await fetch(url, {
-    method,
-    headers: finalHeaders,
-    body: finalBody,
-  });
-
-  return handleResponse<T>(res);
-}
+export const apiClient = {
+  get: <T>(path: string, auth: boolean = true) =>
+    apiRequest<T>(path, { method: "GET", auth }),
+  post: <T>(path: string, body?: any, auth: boolean = true) =>
+    apiRequest<T>(path, { method: "POST", body, auth }),
+  put: <T>(path: string, body?: any, auth: boolean = true) =>
+    apiRequest<T>(path, { method: "PUT", body, auth }),
+  patch: <T>(path: string, body?: any, auth: boolean = true) =>
+    apiRequest<T>(path, { method: "PATCH", body, auth }),
+  delete: <T>(path: string, auth: boolean = true) =>
+    apiRequest<T>(path, { method: "DELETE", auth }),
+};
