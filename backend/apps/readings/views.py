@@ -1,3 +1,101 @@
-from django.shortcuts import render
+# backend/apps/readings/views.py
+from rest_framework import status
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
+from rest_framework.views import APIView
 
-# Create your views here.
+from .models import Reading
+from .serializers import ReadingSerializer
+from .utils import compute_estimated_fc, get_rating
+from apps.projects.models import Project, Member
+
+
+class ReadingListCreateView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        project_id = request.query_params.get("project")
+        qs = Reading.objects.all().select_related("project", "member")
+
+        if project_id:
+            qs = qs.filter(project_id=project_id)
+
+        qs = qs.order_by("-created_at")
+        serializer = ReadingSerializer(qs, many=True)
+        return Response(serializer.data)
+
+    def post(self, request):
+        data = request.data
+
+        project_id = data.get("project")
+        member_id = data.get("member")
+
+        try:
+            project = Project.objects.get(id=project_id, owner=request.user)
+        except Project.DoesNotExist:
+            return Response(
+                {"detail": "Project not found."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        member = None
+        if member_id:
+            try:
+                member = Member.objects.get(id=member_id, project=project)
+            except Member.DoesNotExist:
+                return Response(
+                    {"detail": "Member not found for this project."},
+                    status=status.HTTP_404_NOT_FOUND,
+                )
+
+        upv = float(data.get("upv"))
+        rh_index = float(data.get("rh_index"))
+        carbonation = data.get("carbonation_depth")
+        carbonation_depth = float(carbonation) if carbonation not in [None, ""] else None
+
+        estimated_fc, model_used = compute_estimated_fc(
+            project=project,
+            upv=upv,
+            rh_index=rh_index,
+            carbonation_depth=carbonation_depth,
+        )
+
+        rating = get_rating(estimated_fc, project.design_fc)
+
+        payload = {
+            "project": project.id,
+            "member": member.id if member else None,
+            "location_tag": data.get("location_tag", ""),
+            "upv": upv,
+            "rh_index": rh_index,
+            "carbonation_depth": carbonation_depth,
+            "estimated_fc": estimated_fc,
+            "rating": rating,
+            "model_used": model_used,
+        }
+
+        serializer = ReadingSerializer(data=payload)
+        if serializer.is_valid():
+            reading = serializer.save()
+            return Response(
+                ReadingSerializer(reading).data,
+                status=status.HTTP_201_CREATED,
+            )
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class ReadingDetailView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, pk):
+        try:
+            reading = Reading.objects.select_related("project").get(pk=pk)
+        except Reading.DoesNotExist:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+
+        # Optional: check project.owner == request.user
+        if reading.project.owner != request.user:
+            return Response(status=status.HTTP_403_FORBIDDEN)
+
+        serializer = ReadingSerializer(reading)
+        return Response(serializer.data)

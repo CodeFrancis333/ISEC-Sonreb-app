@@ -1,7 +1,9 @@
+# backend/apps/calibration/urls.py
 from django.urls import path
-from . import views
+from .views import CalibrationPointsView, GenerateModelView, ActiveModelView
 
 urlpatterns = [
-    # Temporary placeholder route (optional but good for testing)
-    # path("ping/", views.ping, name="ping"),
+    path("points/", CalibrationPointsView.as_view(), name="calibration-points"),
+    path("generate/", GenerateModelView.as_view(), name="calibration-generate"),
+    path("model/", ActiveModelView.as_view(), name="calibration-model"),
 ]

@@ -1,6 +1,8 @@
+# backend/apps/readings/urls.py
 from django.urls import path
-from . import views
+from .views import ReadingListCreateView, ReadingDetailView
 
 urlpatterns = [
-    # placeholder
+    path("", ReadingListCreateView.as_view(), name="reading-list-create"),
+    path("<int:pk>/", ReadingDetailView.as_view(), name="reading-detail"),
 ]

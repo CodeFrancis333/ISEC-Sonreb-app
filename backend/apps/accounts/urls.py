@@ -1,7 +1,9 @@
+# backend/apps/accounts/urls.py
 from django.urls import path
-from . import views
+from .views import RegisterView, LoginView, MeView
 
 urlpatterns = [
-    # Temporary placeholder route (optional but good for testing)
-    # path("ping/", views.ping, name="ping"),
+    path("register/", RegisterView.as_view(), name="auth-register"),
+    path("login/", LoginView.as_view(), name="auth-login"),
+    path("me/", MeView.as_view(), name="auth-me"),
 ]
