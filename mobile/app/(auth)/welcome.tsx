@@ -1,5 +1,6 @@
+// mobile/app/(auth)/welcome.tsx
 import React from "react";
-import { View, Text, Image } from "react-native";
+import { View, Text } from "react-native";
 import { Link } from "expo-router";
 import Screen from "../../components/layout/Screen";
 import Button from "../../components/ui/Button";
@@ -23,14 +24,15 @@ export default function WelcomeScreen() {
 
         <View className="w-full gap-3 mb-4">
           <Link href="/(auth)/login" asChild>
-            <Button title="Login" />
+            <Button>
+              Login
+            </Button>
           </Link>
 
           <Link href="/(auth)/register" asChild>
-            <Button
-              variant="secondary"
-              title="Create Account"
-            />
+            <Button variant="secondary">
+              Create Account
+            </Button>
           </Link>
         </View>
 
