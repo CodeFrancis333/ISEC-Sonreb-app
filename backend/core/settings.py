@@ -18,7 +18,7 @@ from dotenv import load_dotenv
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 # Load .env from backend/
-load_dotenv(BASE_DIR / ".env")
+load_dotenv(os.path.join(BASE_DIR, ".env"))
 
 # SECRET KEY
 SECRET_KEY = os.getenv("DJANGO_SECRET_KEY")
@@ -29,7 +29,16 @@ if not SECRET_KEY:
 DEBUG = os.getenv("DEBUG", "True") == "True"
 
 # Hosts
-ALLOWED_HOSTS = []
+raw_allowed_hosts = os.getenv("DJANGO_ALLOWED_HOSTS", "")
+
+if raw_allowed_hosts:
+    ALLOWED_HOSTS = [
+        host.strip()
+        for host in raw_allowed_hosts.split(",")
+        if host.strip()
+    ]
+else:
+    ALLOWED_HOSTS = []
 
 # Application definition
 

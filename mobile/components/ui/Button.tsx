@@ -1,69 +1,85 @@
 // mobile/components/ui/Button.tsx
 import React from "react";
-import { Text, TouchableOpacity, ActivityIndicator } from "react-native";
+import {
+  Text,
+  TouchableOpacity,
+  TouchableOpacityProps,
+  ActivityIndicator,
+} from "react-native";
 
-type ButtonVariant = "primary" | "secondary" | "ghost";
+type ButtonVariant = "primary" | "secondary" | "ghost" | "outline" | "danger";
 
-export interface ButtonProps {
-  children?: React.ReactNode;                // for <Button>Label</Button>
-  label?: string;                            // optional alternative: <Button label="Label" />
-  onPress?: () => void | Promise<void>;
-  disabled?: boolean;
-  loading?: boolean;
+export interface ButtonProps extends TouchableOpacityProps {
   variant?: ButtonVariant;
-  className?: string;                        // extra Tailwind classes (NativeWind)
+  title?: string; // optional convenience prop
+  loading?: boolean;
+  children?: React.ReactNode; // allow <Button>Text</Button>
 }
 
-const baseClasses =
-  "w-full rounded-xl px-4 py-3 items-center justify-center flex-row";
-
-const variantClasses: Record<ButtonVariant, string> = {
-  primary: "bg-emerald-600 active:bg-emerald-500",
-  secondary: "bg-slate-700 active:bg-slate-600",
-  ghost: "bg-transparent border border-slate-600",
-};
-
-const textVariantClasses: Record<ButtonVariant, string> = {
-  primary: "text-white",
-  secondary: "text-white",
-  ghost: "text-slate-100",
-};
+const variantStyles: Record<ButtonVariant, { container: string; text: string }> =
+  {
+    primary: {
+      container:
+        "bg-emerald-600 border border-emerald-500 active:bg-emerald-500",
+      text: "text-white",
+    },
+    secondary: {
+      container:
+        "bg-slate-800 border border-slate-700 active:bg-slate-700",
+      text: "text-slate-100",
+    },
+    ghost: {
+      container:
+        "bg-transparent border border-slate-700 active:bg-slate-800/60",
+      text: "text-slate-200",
+    },
+    outline: {
+      container:
+        "bg-transparent border border-emerald-600 active:bg-emerald-500/10",
+      text: "text-emerald-300",
+    },
+    danger: {
+      container:
+        "bg-red-600 border border-red-500 active:bg-red-500",
+      text: "text-white",
+    },
+  };
 
 export default function Button({
-  children,
-  label,
-  onPress,
-  disabled = false,
-  loading = false,
   variant = "primary",
+  title,
+  loading = false,
+  disabled,
+  children,
   className = "",
+  ...rest
 }: ButtonProps) {
-  const isDisabled = disabled || loading;
+  const styles = variantStyles[variant];
 
-  const content = children ?? (
-    <Text className={`text-sm font-semibold ${textVariantClasses[variant]}`}>
-      {label}
-    </Text>
-  );
+  // Prefer title if provided, otherwise allow string children.
+  const label =
+    title ??
+    (typeof children === "string" || typeof children === "number"
+      ? String(children)
+      : undefined);
 
   return (
     <TouchableOpacity
-      className={`${baseClasses} ${variantClasses[variant]} ${
-        isDisabled ? "opacity-60" : ""
+      disabled={disabled || loading}
+      className={`rounded-xl px-4 py-3 items-center justify-center ${styles.container} ${
+        disabled || loading ? "opacity-60" : ""
       } ${className}`}
-      onPress={onPress}
-      disabled={isDisabled}
-      activeOpacity={0.85}
+      {...rest}
     >
-      {loading && (
-        <ActivityIndicator size="small" className="mr-2" />
-      )}
-      {typeof content === "string" ? (
-        <Text className={`text-sm font-semibold ${textVariantClasses[variant]}`}>
-          {content}
+      {loading ? (
+        <ActivityIndicator />
+      ) : label ? (
+        <Text className={`text-sm font-semibold ${styles.text}`}>
+          {label}
         </Text>
       ) : (
-        content
+        // If children is not a string, render it directly
+        children
       )}
     </TouchableOpacity>
   );

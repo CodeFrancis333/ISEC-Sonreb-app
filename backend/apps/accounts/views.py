@@ -16,7 +16,7 @@ from .serializers import (
 
 def generate_tokens_for_user(user: User) -> str:
     refresh = RefreshToken.for_user(user)
-    return str(refresh.access_token)  # We'll just send the access token
+    return str(refresh.access_token) 
 
 
 class RegisterView(APIView):

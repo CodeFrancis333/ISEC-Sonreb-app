@@ -21,6 +21,8 @@ export const APP_VERSION = "1.0.0";
 const MACHINE_IP = process.env.EXPO_PUBLIC_API_IP; // from .env
 const FALLBACK_IP = "127.0.0.1"; // only used for Expo Web
 
+console.log("EXPO_PUBLIC_API_IP from env:", MACHINE_IP);
+
 export const API_BASE_URL = `http://${MACHINE_IP || FALLBACK_IP}:8000/api`;
 
 

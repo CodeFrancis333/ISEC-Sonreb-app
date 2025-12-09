@@ -5,18 +5,26 @@ import { useAuthStore } from "../store/authStore";
 import * as authService from "../services/authService";
 
 export function useAuth() {
-  const { user, token, loading, error, setUserAndToken, clearAuth, setLoading, setError } =
-    useAuthStore();
+  const {
+    user,
+    token,
+    loading,
+    error,
+    setUserAndToken,
+    clearAuth,
+    setLoading,
+    setError,
+  } = useAuthStore();
 
   const handleLogin = useCallback(
     async (email: string, password: string) => {
       try {
         setLoading(true);
         setError(null);
-        const res = await authService.login(email.trim(), password);
-        setUserAndToken(res.user, res.token);
 
-        // Navigate to main dashboard group
+        const res = await authService.login(email.trim(), password);
+        await setUserAndToken(res.user, res.token);
+
         router.replace("/(main)");
       } catch (err: any) {
         setError(err.message || "Login failed.");
@@ -33,8 +41,10 @@ export function useAuth() {
       try {
         setLoading(true);
         setError(null);
+
         const res = await authService.register(name.trim(), email.trim(), password);
-        setUserAndToken(res.user, res.token);
+        await setUserAndToken(res.user, res.token);
+
         router.replace("/(main)");
       } catch (err: any) {
         setError(err.message || "Registration failed.");
@@ -46,8 +56,8 @@ export function useAuth() {
     [setUserAndToken, setLoading, setError],
   );
 
-  const logout = useCallback(() => {
-    clearAuth();
+  const logout = useCallback(async () => {
+    await clearAuth();
     router.replace("/(auth)/welcome");
   }, [clearAuth]);
 
@@ -61,3 +71,5 @@ export function useAuth() {
     logout,
   };
 }
+
+export default useAuth;
