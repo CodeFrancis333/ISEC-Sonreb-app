@@ -53,12 +53,18 @@ class ReadingListCreateView(APIView):
         carbonation = data.get("carbonation_depth")
         carbonation_depth = float(carbonation) if carbonation not in [None, ""] else None
 
-        estimated_fc, model_used = compute_estimated_fc(
-            project=project,
-            upv=upv,
-            rh_index=rh_index,
-            carbonation_depth=carbonation_depth,
-        )
+        try:
+            estimated_fc, model_used = compute_estimated_fc(
+                project=project,
+                upv=upv,
+                rh_index=rh_index,
+                carbonation_depth=carbonation_depth,
+            )
+        except ValueError as exc:
+            return Response(
+                {"detail": str(exc)},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
         rating = get_rating(estimated_fc, project.design_fc)
 

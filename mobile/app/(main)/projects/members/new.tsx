@@ -1,13 +1,18 @@
 // app/(main)/projects/members/new.tsx
 import React, { useState } from "react";
-import { Text, ScrollView } from "react-native";
-import { useRouter } from "expo-router";
+import { Text, ScrollView, Alert } from "react-native";
+import { useRouter, useLocalSearchParams } from "expo-router";
 import Screen from "../../../../components/layout/Screen";
 import Input from "../../../../components/ui/Input";
 import Button from "../../../../components/ui/Button";
+import { createMember } from "../../../../services/projectService";
+import { useAuthStore } from "../../../../store/authStore";
 
 export default function NewMemberScreen() {
   const router = useRouter();
+  const params = useLocalSearchParams<{ projectId?: string }>();
+  const projectId = params.projectId as string | undefined;
+  const { token } = useAuthStore();
 
   const [memberId, setMemberId] = useState("");
   const [type, setType] = useState("");
@@ -15,10 +20,31 @@ export default function NewMemberScreen() {
   const [gridline, setGridline] = useState("");
   const [notes, setNotes] = useState("");
 
-  const handleSave = () => {
-    // TODO: send data to backend and associate with selected project
-    // For now we just go back.
-    router.back();
+  const handleSave = async () => {
+    if (!projectId) {
+      Alert.alert("Missing project", "Open this from a project to add a member.");
+      return;
+    }
+    if (!memberId || !type) {
+      Alert.alert("Missing fields", "Member ID and type are required.");
+      return;
+    }
+    try {
+      await createMember(
+        {
+          project: projectId,
+          member_id: memberId,
+          type,
+          level,
+          gridline,
+          notes,
+        },
+        token || undefined
+      );
+      router.back();
+    } catch (err: any) {
+      Alert.alert("Save failed", err.message || "Could not save member.");
+    }
   };
 
   return (

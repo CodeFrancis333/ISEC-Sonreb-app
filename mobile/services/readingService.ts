@@ -6,7 +6,7 @@ export type Rating = "GOOD" | "FAIR" | "POOR";
 export type Reading = {
   id: string;
   project: string;  // project ID
-  member: string;   // member ID
+  member?: string | null;   // member ID
   location_tag: string;
   upv: number;
   rh_index: number;
@@ -14,7 +14,7 @@ export type Reading = {
   estimated_fc: number;
   rating: Rating;
   model_used: string;
-  timestamp: string; // ISO string
+  created_at: string; // ISO string
 };
 
 export type CreateReadingPayload = {

@@ -1,21 +1,44 @@
 import React, { useState } from "react";
-import { Text, ScrollView } from "react-native";
+import { Text, ScrollView, Alert } from "react-native";
 import { useRouter } from "expo-router";
 import Screen from "../../../components/layout/Screen";
 import Input from "../../../components/ui/Input";
 import Button from "../../../components/ui/Button";
+import { createProject } from "../../../services/projectService";
+import { useAuthStore } from "../../../store/authStore";
 
 export default function NewProjectScreen() {
   const router = useRouter();
+  const { token } = useAuthStore();
   const [name, setName] = useState("");
   const [location, setLocation] = useState("");
   const [client, setClient] = useState("");
   const [designFc, setDesignFc] = useState("");
   const [notes, setNotes] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  const handleSave = () => {
-    // TODO: call backend to create project
-    router.back();
+  const handleSave = async () => {
+    if (!name || !location) {
+      Alert.alert("Missing fields", "Project name and location are required.");
+      return;
+    }
+    try {
+      setLoading(true);
+      const payload: any = {
+        name,
+        location,
+      };
+      if (client) payload.client = client;
+      if (designFc) payload.design_fc = parseFloat(designFc);
+      if (notes) payload.notes = notes;
+
+      await createProject(payload, token || undefined);
+      router.back();
+    } catch (err: any) {
+      Alert.alert("Create failed", err.message || "Unable to create project.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (

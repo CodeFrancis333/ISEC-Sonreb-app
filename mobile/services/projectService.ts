@@ -32,6 +32,29 @@ export type ProjectSummary = {
   poor_count: number;
 };
 
+export type RatingsDistribution = {
+  project_id: string;
+  good: number;
+  fair: number;
+  poor: number;
+  total: number;
+};
+
+export type HistogramBin = {
+  lower: number;
+  upper: number;
+  count: number;
+};
+
+export type HistogramResponse = {
+  project_id: string;
+  bin_size: number;
+  bins: HistogramBin[];
+  min_fc: number | null;
+  max_fc: number | null;
+  avg_fc: number | null;
+};
+
 export type CreateProjectPayload = {
   name: string;
   location: string;
@@ -112,4 +135,34 @@ export async function getProjectSummary(
     method: "GET",
     token: token || undefined,
   });
+}
+
+export async function getProjectRatings(
+  projectId: string,
+  token?: string | null
+): Promise<RatingsDistribution> {
+  // GET /api/projects/{id}/stats/ratings/
+  return apiRequest<RatingsDistribution>(
+    `/projects/${projectId}/stats/ratings/`,
+    {
+      method: "GET",
+      token: token || undefined,
+    }
+  );
+}
+
+export async function getProjectHistogram(
+  projectId: string,
+  binSize: number = 2,
+  token?: string | null
+): Promise<HistogramResponse> {
+  // GET /api/projects/{id}/stats/fc-histogram/?bin_size=
+  return apiRequest<HistogramResponse>(
+    `/projects/${projectId}/stats/fc-histogram/`,
+    {
+      method: "GET",
+      token: token || undefined,
+      params: { bin_size: binSize },
+    }
+  );
 }

@@ -120,11 +120,20 @@ class GenerateModelView(APIView):
         ss_res = float(np.sum((y - y_pred) ** 2))
         ss_tot = float(np.sum((y - y.mean()) ** 2)) if len(y) > 1 else 0.0
         r2 = 1.0 - ss_res / ss_tot if ss_tot > 0 else 1.0
+        rmse = float(np.sqrt(np.mean((y - y_pred) ** 2))) if len(y) > 0 else 0.0
 
         a0 = float(beta[0])
         a1 = float(beta[1])
         a2 = float(beta[2])
         a3 = float(beta[3]) if use_carbonation and len(beta) > 3 else None
+
+        upv_values = [p.upv for p in points]
+        rh_values = [p.rh_index for p in points]
+        carbonation_values = [
+            p.carbonation_depth
+            for p in points
+            if use_carbonation and p.carbonation_depth is not None
+        ]
 
         model_data = {
             "project": project.id,
@@ -133,8 +142,19 @@ class GenerateModelView(APIView):
             "a2": a2,
             "a3": a3,
             "r2": r2,
+            "rmse": rmse,
             "points_used": points.count(),
             "use_carbonation": use_carbonation,
+            "upv_min": min(upv_values) if upv_values else None,
+            "upv_max": max(upv_values) if upv_values else None,
+            "rh_min": min(rh_values) if rh_values else None,
+            "rh_max": max(rh_values) if rh_values else None,
+            "carbonation_min": min(carbonation_values)
+            if carbonation_values
+            else None,
+            "carbonation_max": max(carbonation_values)
+            if carbonation_values
+            else None,
         }
 
         # Upsert model (one per project)
@@ -177,3 +197,63 @@ class ActiveModelView(APIView):
 
         serializer = CalibrationModelSerializer(model)
         return Response(serializer.data)
+
+
+class CalibrationDiagnosticsView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        project_id = request.query_params.get("project")
+        if not project_id:
+            return Response(
+                {"detail": "project query parameter is required."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            project = Project.objects.get(id=project_id, owner=request.user)
+        except Project.DoesNotExist:
+            return Response(
+                {"detail": "Project not found."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        try:
+            model = project.calibration_model
+        except CalibrationModel.DoesNotExist:
+            return Response(
+                {"detail": "No active calibration model for this project."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        points = CalibrationPoint.objects.filter(project=project).order_by("-created_at")
+        data_points = []
+        for p in points:
+            # predicted using active model
+            if model.use_carbonation and p.carbonation_depth is not None:
+                predicted = (
+                    model.a0
+                    + model.a1 * p.rh_index
+                    + model.a2 * p.upv
+                    + (model.a3 or 0.0) * p.carbonation_depth
+                )
+            else:
+                predicted = model.a0 + model.a1 * p.rh_index + model.a2 * p.upv
+
+            data_points.append(
+                {
+                    "id": p.id,
+                    "measured_fc": p.core_fc,
+                    "predicted_fc": predicted,
+                    "upv": p.upv,
+                    "rh_index": p.rh_index,
+                    "carbonation_depth": p.carbonation_depth,
+                    "created_at": p.created_at,
+                }
+            )
+
+        payload = {
+            "model": CalibrationModelSerializer(model).data,
+            "points": data_points,
+        }
+        return Response(payload)

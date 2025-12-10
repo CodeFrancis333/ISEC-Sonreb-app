@@ -34,8 +34,15 @@ class CalibrationModel(models.Model):
     a2 = models.FloatField()
     a3 = models.FloatField(null=True, blank=True)
     r2 = models.FloatField()
+    rmse = models.FloatField(null=True, blank=True)
     points_used = models.PositiveIntegerField()
     use_carbonation = models.BooleanField(default=False)
+    upv_min = models.FloatField(null=True, blank=True)
+    upv_max = models.FloatField(null=True, blank=True)
+    rh_min = models.FloatField(null=True, blank=True)
+    rh_max = models.FloatField(null=True, blank=True)
+    carbonation_min = models.FloatField(null=True, blank=True)
+    carbonation_max = models.FloatField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):

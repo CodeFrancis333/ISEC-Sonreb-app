@@ -1,28 +1,37 @@
-import React from "react";
-import { View, Text, ScrollView, TouchableOpacity } from "react-native";
-import { Link } from "expo-router";
+import React, { useEffect, useState } from "react";
+import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator } from "react-native";
+import { Link, useRouter } from "expo-router";
 import Screen from "../../../components/layout/Screen";
-
-const readings = [
-  {
-    id: "r1",
-    project: "Hospital Wing A",
-    member: "C1",
-    fc: 26.4,
-    rating: "GOOD",
-    modelUsed: "Calibrated",
-  },
-  {
-    id: "r2",
-    project: "Flyover Pier P3",
-    member: "P3-1",
-    fc: 18.2,
-    rating: "POOR",
-    modelUsed: "Default",
-  },
-];
+import { listReadings, Reading } from "../../../services/readingService";
+import { useAuthStore } from "../../../store/authStore";
 
 export default function AllReadingsListScreen() {
+  const { token } = useAuthStore();
+  const router = useRouter();
+  const [readings, setReadings] = useState<Reading[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    async function load() {
+      try {
+        setLoading(true);
+        const data = await listReadings(token || undefined);
+        setReadings(data);
+      } catch (err: any) {
+        if (err?.status === 401 || err?.status === 403) {
+          await useAuthStore.getState().clearAuth();
+          router.replace("/(auth)/login");
+          return;
+        }
+        setError(err.message || "Unable to load readings.");
+      } finally {
+        setLoading(false);
+      }
+    }
+    load();
+  }, [token]);
+
   return (
     <Screen>
       <View className="mb-4">
@@ -33,36 +42,51 @@ export default function AllReadingsListScreen() {
           All Readings
         </Text>
         <Text className="text-slate-400 text-xs mt-1">
-          Filter & search coming in future versions.
+          Browse all saved readings across projects.
         </Text>
       </View>
 
-      <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
-        <View className="gap-3">
-          {readings.map((reading) => (
-            <Link
-              key={reading.id}
-              href={{
-                pathname: "/readings/[id]",
-                params: { id: reading.id },
-              }}
-              asChild
-            >
-              <TouchableOpacity className="rounded-xl bg-slate-800 p-4 active:bg-slate-700">
-                <Text className="text-white font-semibold">
-                  {reading.project} – {reading.member}
-                </Text>
-                <Text className="text-slate-400 text-xs mt-1">
-                  fc′ est. {reading.fc.toFixed(1)} MPa • {reading.rating}
-                </Text>
-                <Text className="text-slate-500 text-xs mt-2">
-                  Model: {reading.modelUsed}
-                </Text>
-              </TouchableOpacity>
-            </Link>
-          ))}
+      {error ? (
+        <View className="bg-rose-500/10 border border-rose-500/40 rounded-lg p-3 mb-3">
+          <Text className="text-rose-100 text-xs">{error}</Text>
         </View>
-      </ScrollView>
+      ) : null}
+
+      {loading ? (
+        <View className="items-center justify-center py-6">
+          <ActivityIndicator color="#34d399" />
+        </View>
+      ) : (
+        <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
+          <View className="gap-3">
+            {readings.map((reading) => (
+              <Link
+                key={reading.id}
+                href={{
+                  pathname: "/readings/[id]",
+                  params: { id: reading.id },
+                }}
+                asChild
+              >
+                <TouchableOpacity className="rounded-xl bg-slate-800 p-4 active:bg-slate-700">
+                  <Text className="text-white font-semibold">
+                    {(reading as any).project_name || reading.project} • {reading.member || "N/A"}
+                  </Text>
+                  <Text className="text-slate-400 text-xs mt-1">
+                    fc' est. {reading.estimated_fc.toFixed(1)} MPa • {reading.rating}
+                  </Text>
+                  <Text className="text-slate-500 text-xs mt-2">
+                    Model: {reading.model_used}
+                  </Text>
+                </TouchableOpacity>
+              </Link>
+            ))}
+            {!readings.length && (
+              <Text className="text-slate-400 text-xs">No readings yet.</Text>
+            )}
+          </View>
+        </ScrollView>
+      )}
     </Screen>
   );
 }

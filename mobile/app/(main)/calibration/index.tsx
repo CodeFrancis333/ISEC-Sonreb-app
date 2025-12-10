@@ -1,34 +1,63 @@
-import React from "react";
-import { View, Text, ScrollView, TouchableOpacity } from "react-native";
-import { Link } from "expo-router";
+import React, { useEffect, useState } from "react";
+import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Alert } from "react-native";
+import { Link, useRouter } from "expo-router";
 import Screen from "../../../components/layout/Screen";
-
-const calibrationPoints = [
-  {
-    id: "c1",
-    member: "C1",
-    upv: 4200,
-    rh: 32,
-    carbonation: 15,
-    coreFc: 27.5,
-    date: "2025-12-01",
-  },
-  {
-    id: "c2",
-    member: "C2",
-    upv: 4100,
-    rh: 30,
-    carbonation: 20,
-    coreFc: 25.8,
-    date: "2025-12-02",
-  },
-];
+import { useAuthStore } from "../../../store/authStore";
+import { listProjects, Project } from "../../../services/projectService";
+import { listCalibrationPoints, CalibrationPoint } from "../../../services/calibrationService";
 
 export default function CalibrationPointsListScreen() {
+  const router = useRouter();
+  const { token } = useAuthStore();
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [selectedProject, setSelectedProject] = useState<string | null>(null);
+  const [points, setPoints] = useState<CalibrationPoint[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    async function init() {
+      try {
+        const projList = await listProjects(token || undefined);
+        setProjects(projList);
+        const firstId = projList[0]?.id || null;
+        setSelectedProject(firstId);
+        if (firstId) {
+          await fetchPoints(firstId);
+        }
+      } catch (err: any) {
+        setError(err.message || "Unable to load projects.");
+      }
+    }
+    init();
+  }, [token]);
+
+  async function fetchPoints(projectId: string) {
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await listCalibrationPoints(projectId, token || undefined);
+      setPoints(data);
+    } catch (err: any) {
+      if (err?.status === 401 || err?.status === 403) {
+        // Token invalid or expired; sign out and redirect to login
+        await useAuthStore.getState().clearAuth();
+        router.replace("/(auth)/login");
+        return;
+      }
+      setError(err.message || "Unable to load calibration points.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  const minRequired = 5;
+  const minCarbonation = 8;
+
   return (
     <Screen>
       <View className="flex-row justify-between items-center mb-4">
-        <View>
+        <View className="flex-1">
           <Text className="text-xs text-emerald-400 uppercase">
             Calibration
           </Text>
@@ -36,11 +65,20 @@ export default function CalibrationPointsListScreen() {
             Calibration Points
           </Text>
           <Text className="text-slate-400 text-xs mt-1">
-            You have {calibrationPoints.length} calibration points.
+            You have {points.length} calibration points.
           </Text>
         </View>
-        <Link href="/calibration/new-point" asChild>
-          <TouchableOpacity className="rounded-xl bg-emerald-600 px-3 py-2">
+        <Link
+          href={{
+            pathname: "/calibration/new-point",
+            params: { projectId: selectedProject || "" },
+          }}
+          asChild
+        >
+          <TouchableOpacity
+            disabled={!selectedProject}
+            className={`rounded-xl px-3 py-2 ${selectedProject ? "bg-emerald-600" : "bg-slate-700"}`}
+          >
             <Text className="text-white text-xs font-semibold">
               + Add
             </Text>
@@ -48,42 +86,107 @@ export default function CalibrationPointsListScreen() {
         </Link>
       </View>
 
-      <View className="rounded-xl bg-slate-800 p-3 mb-3">
-        <Text className="text-slate-200 text-xs">
-          Requirements:
-        </Text>
-        <Text className="text-slate-300 text-xs mt-1">
-          • Min 5 points → basic model (UPV + RH)
-        </Text>
-        <Text className="text-slate-300 text-xs">
-          • Min 8 points → model with carbonation
-        </Text>
-      </View>
+      {!projects.length && (
+        <View className="bg-amber-500/10 border border-amber-500/40 rounded-lg p-3 mb-3">
+          <Text className="text-amber-200 text-xs">
+            No projects yet. Create a project first in the Projects tab, then return here to add calibration points.
+          </Text>
+          <Link href="/projects" asChild>
+            <TouchableOpacity className="mt-2 rounded-lg bg-amber-500/20 px-3 py-2">
+              <Text className="text-amber-100 text-xs">Go to Projects</Text>
+            </TouchableOpacity>
+          </Link>
+        </View>
+      )}
 
-      <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
-        <View className="gap-3">
-          {calibrationPoints.map((p) => (
-            <View
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} className="mb-3">
+        <View className="flex-row gap-2">
+          {projects.map((p) => (
+            <TouchableOpacity
               key={p.id}
-              className="rounded-xl bg-slate-800 p-4"
+              onPress={() => {
+                setSelectedProject(p.id);
+                fetchPoints(p.id);
+              }}
+              className={`px-3 py-2 rounded-full border ${
+                selectedProject === p.id ? "border-emerald-500 bg-emerald-500/10" : "border-slate-600"
+              }`}
             >
-              <Text className="text-white font-semibold">
-                {p.member} • Core: {p.coreFc.toFixed(1)} MPa
+              <Text className={selectedProject === p.id ? "text-white text-xs" : "text-slate-200 text-xs"}>
+                {p.name}
               </Text>
-              <Text className="text-slate-400 text-xs mt-1">
-                UPV {p.upv} m/s • RH {p.rh} • Carbonation {p.carbonation} mm
-              </Text>
-              <Text className="text-slate-500 text-xs mt-1">
-                {p.date}
-              </Text>
-            </View>
+            </TouchableOpacity>
           ))}
         </View>
       </ScrollView>
 
+      <View className="rounded-xl bg-slate-800 p-3 mb-3">
+        <Text className="text-slate-200 text-xs">Requirements:</Text>
+        <Text className="text-slate-300 text-xs mt-1">
+          • Min {minRequired} points → basic model (UPV + RH)
+        </Text>
+        <Text className="text-slate-300 text-xs">
+          • Min {minCarbonation} points → model with carbonation
+        </Text>
+      </View>
+
+      {error ? (
+        <View className="bg-rose-500/10 border border-rose-500/40 rounded-lg p-3 mb-3">
+          <Text className="text-rose-100 text-xs">{error}</Text>
+        </View>
+      ) : null}
+
+      {loading ? (
+        <View className="items-center justify-center py-6">
+          <ActivityIndicator color="#34d399" />
+        </View>
+      ) : (
+        <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
+          <View className="gap-3">
+            {points.map((p) => (
+              <View key={p.id} className="rounded-xl bg-slate-800 p-4">
+                <Text className="text-white font-semibold">
+                  {(p.member as any) || "Member"} • Core: {p.core_fc.toFixed(1)} MPa
+                </Text>
+                <Text className="text-slate-400 text-xs mt-1">
+                  UPV {p.upv} m/s • RH {p.rh_index}{" "}
+                  {p.carbonation_depth !== null && p.carbonation_depth !== undefined
+                    ? `• Carbonation ${p.carbonation_depth} mm`
+                    : ""}
+                </Text>
+                <Text className="text-slate-500 text-xs mt-1">
+                  {new Date(p.created_at).toISOString().slice(0, 10)}
+                </Text>
+              </View>
+            ))}
+            {!points.length && (
+              <Text className="text-slate-400 text-xs">
+                No calibration points yet for this project.
+              </Text>
+            )}
+          </View>
+        </ScrollView>
+      )}
+
       <View className="mt-4">
-        <Link href="/calibration/generate" asChild>
-          <TouchableOpacity className="rounded-xl bg-emerald-600 py-3 items-center">
+        <Link
+          href={{
+            pathname: "/calibration/generate",
+            params: { projectId: selectedProject || "" },
+          }}
+          asChild
+        >
+          <TouchableOpacity
+            disabled={!selectedProject}
+            className={`rounded-xl py-3 items-center ${
+              selectedProject ? "bg-emerald-600" : "bg-slate-700"
+            }`}
+            onPress={() => {
+              if (!selectedProject) {
+                Alert.alert("Select a project first");
+              }
+            }}
+          >
             <Text className="text-white font-semibold text-sm">
               Generate Model
             </Text>

@@ -2,6 +2,8 @@ import React from "react";
 import { View, Text, TouchableOpacity, ScrollView } from "react-native";
 import { Link, type Href } from "expo-router";
 import Screen from "../../components/layout/Screen";
+import { useAuthStore } from "../../store/authStore";
+import { useRouter } from "expo-router";
 
 type Tile = {
   title: string;
@@ -40,11 +42,33 @@ const tiles: Tile[] = [
 const LinkAny = Link as unknown as React.ComponentType<any>;
 
 export default function MainHomeScreen() {
+  const { clearAuth } = useAuthStore();
+  const router = useRouter();
+
+  const handleSignOut = async () => {
+    await clearAuth();
+    router.replace("/(auth)/welcome");
+  };
+
   return (
     <Screen>
       <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
-        <Text className="text-sm text-emerald-400 mb-1">SONREB Dashboard</Text>
-        <Text className="text-2xl font-bold text-white mb-1">Hi Engineer,</Text>
+        <View className="flex-row items-center justify-between mb-2">
+          <View>
+            <Text className="text-sm text-emerald-400">SONREB Dashboard</Text>
+            <Text className="text-2xl font-bold text-white">Hi Engineer,</Text>
+          </View>
+
+          <TouchableOpacity
+            onPress={handleSignOut}
+            className="rounded-full border border-emerald-500/60 px-3 py-1 active:bg-emerald-500/10"
+          >
+            <Text className="text-emerald-200 text-sm font-semibold">
+              Sign out
+            </Text>
+          </TouchableOpacity>
+        </View>
+
         <Text className="text-slate-300 mb-6">
           What would you like to do today?
         </Text>

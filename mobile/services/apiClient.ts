@@ -14,7 +14,7 @@ interface RequestOptions {
 /**
  * Core function to handle all API requests.
  */
-async function apiRequest<T>(path: string, options: RequestOptions = {}): Promise<T> {
+export async function apiRequest<T>(path: string, options: RequestOptions = {}): Promise<T> {
     const { method = "GET", body, params, auth = true } = options;
     const token = useAuthStore.getState().token;
     
@@ -68,14 +68,17 @@ async function apiRequest<T>(path: string, options: RequestOptions = {}): Promis
     }
 
     if (!response.ok) {
-        // Construct a helpful error message
+        // Construct a helpful error message and include response data/status for callers
         const detail =
             data?.detail ||
             data?.error ||
             text || // fall back to raw text if error is non-JSON
             `HTTP ${response.status} Error`;
 
-        throw new Error(detail);
+        const err: any = new Error(detail);
+        err.status = response.status;
+        err.data = data;
+        throw err;
     }
 
     return data as T;

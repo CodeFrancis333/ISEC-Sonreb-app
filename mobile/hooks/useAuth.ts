@@ -23,10 +23,30 @@ export function useAuth() {
         setError(null);
 
         const res = await authService.login(email.trim(), password);
-        await setUserAndToken(res.user, res.token);
+
+        // Handle unverified accounts
+        if ((res as any)?.require_verification) {
+          router.replace({
+            pathname: "/(auth)/verify",
+            params: { email: email.trim(), uid: (res as any).uid },
+          });
+          return;
+        }
+
+        await setUserAndToken((res as any).user, (res as any).token);
 
         router.replace("/(main)");
       } catch (err: any) {
+        if (err?.data?.require_verification) {
+          router.replace({
+            pathname: "/(auth)/verify",
+            params: {
+              email: email.trim(),
+              uid: err.data.uid,
+            },
+          });
+          return;
+        }
         setError(err.message || "Login failed.");
         throw err;
       } finally {
@@ -43,9 +63,15 @@ export function useAuth() {
         setError(null);
 
         const res = await authService.register(name.trim(), email.trim(), password);
-        await setUserAndToken(res.user, res.token);
 
-        router.replace("/(main)");
+        router.replace({
+          pathname: "/(auth)/verify",
+          params: {
+            email: email.trim(),
+            uid: (res as any).uid,
+            code: (res as any).code,
+          },
+        });
       } catch (err: any) {
         setError(err.message || "Registration failed.");
         throw err;

@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { View, Text, TouchableOpacity, Alert } from "react-native";
-import { Link } from "expo-router";
+import { useRouter } from "expo-router";
 import Screen from "../../components/layout/Screen";
 import Input from "../../components/ui/Input";
 import Button from "../../components/ui/Button";
@@ -8,6 +8,7 @@ import { useAuth } from "../../hooks/useAuth";
 
 export default function LoginScreen() {
   const { login, loading, error } = useAuth();
+  const router = useRouter();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -63,22 +64,16 @@ export default function LoginScreen() {
         </Button>
 
         <View className="flex-row justify-between items-center mt-4">
-          <Link href="/(auth)/register" asChild>
-            <TouchableOpacity>
-              <Text className="text-emerald-400 text-xs">
-                Create an account
-              </Text>
-            </TouchableOpacity>
-          </Link>
-
           <TouchableOpacity
-            onPress={() =>
-              Alert.alert(
-                "Coming soon",
-                "Password reset will be available in a future version.",
-              )
-            }
+            onPress={() => router.replace("/(auth)/register")}
+            className="pr-2"
           >
+            <Text className="text-emerald-400 text-xs">
+              Create an account
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity onPress={() => router.replace("/(auth)/forgot")}>
             <Text className="text-slate-400 text-xs">Forgot password?</Text>
           </TouchableOpacity>
         </View>

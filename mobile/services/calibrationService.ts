@@ -10,7 +10,7 @@ export type CalibrationPoint = {
   carbonation_depth?: number | null;
   core_fc: number;
   notes?: string;
-  date: string;          // ISO string
+  created_at: string;    // ISO string
 };
 
 export type CalibrationModel = {
@@ -21,8 +21,15 @@ export type CalibrationModel = {
   a2: number;
   a3?: number | null;
   r2: number;
+  rmse?: number | null;
   points_used: number;
   use_carbonation: boolean;
+  upv_min?: number | null;
+  upv_max?: number | null;
+  rh_min?: number | null;
+  rh_max?: number | null;
+  carbonation_min?: number | null;
+  carbonation_max?: number | null;
   created_at: string;
 };
 
@@ -86,6 +93,35 @@ export async function getActiveModel(
   // GET /api/calibration/model/?project={id}
   return apiRequest<CalibrationModel>(
     `/calibration/model/?project=${projectId}`,
+    {
+      method: "GET",
+      token: token || undefined,
+    }
+  );
+}
+
+export type CalibrationDiagnosticPoint = {
+  id: string;
+  measured_fc: number;
+  predicted_fc: number;
+  upv: number;
+  rh_index: number;
+  carbonation_depth?: number | null;
+  created_at: string;
+};
+
+export type CalibrationDiagnostics = {
+  model: CalibrationModel;
+  points: CalibrationDiagnosticPoint[];
+};
+
+export async function getCalibrationDiagnostics(
+  projectId: string,
+  token?: string | null
+): Promise<CalibrationDiagnostics> {
+  // GET /api/calibration/diagnostics/?project={id}
+  return apiRequest<CalibrationDiagnostics>(
+    `/calibration/diagnostics/?project=${projectId}`,
     {
       method: "GET",
       token: token || undefined,

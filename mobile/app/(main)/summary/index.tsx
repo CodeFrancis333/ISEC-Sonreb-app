@@ -1,19 +1,85 @@
-import React from "react";
-import { View, Text, ScrollView } from "react-native";
+import React, { useEffect, useMemo, useState } from "react";
+import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator } from "react-native";
+import { useLocalSearchParams } from "expo-router";
 import Screen from "../../../components/layout/Screen";
+import { useAuthStore } from "../../../store/authStore";
+import {
+  getProjectHistogram,
+  getProjectRatings,
+  getProjectSummary,
+  listProjects,
+  HistogramResponse,
+  Project,
+  RatingsDistribution,
+  ProjectSummary,
+} from "../../../services/projectService";
+import { PieChart } from "../../../components/charts/PieChart";
+import { HistogramChart } from "../../../components/charts/HistogramChart";
 
 export default function ProjectSummaryScreen() {
-  // Dummy summary values
-  const readingsCount = 24;
-  const minFc = 18.2;
-  const maxFc = 29.7;
-  const avgFc = 25.1;
+  const { projectId: projectIdParam } = useLocalSearchParams<{ projectId?: string }>();
+  const { token } = useAuthStore();
 
-  const ratingCounts = {
-    GOOD: 16,
-    FAIR: 6,
-    POOR: 2,
-  };
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [selectedProject, setSelectedProject] = useState<string | null>(null);
+  const [summary, setSummary] = useState<ProjectSummary | null>(null);
+  const [ratings, setRatings] = useState<RatingsDistribution | null>(null);
+  const [histogram, setHistogram] = useState<HistogramResponse | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    async function init() {
+      try {
+        const projectList = await listProjects(token || undefined);
+        setProjects(projectList);
+
+        const initialId =
+          (projectIdParam as string | undefined) ||
+          projectList[0]?.id ||
+          null;
+        setSelectedProject(initialId);
+
+        if (initialId) {
+          await fetchStats(initialId);
+        }
+      } catch (err: any) {
+        setError(err.message || "Unable to load projects.");
+      }
+    }
+    init();
+  }, [projectIdParam, token]);
+
+  const pieSegments = useMemo(() => {
+    if (!ratings) return [];
+    return [
+      { label: "Good", value: ratings.good, color: "#34d399" },
+      { label: "Fair", value: ratings.fair, color: "#fbbf24" },
+      { label: "Poor", value: ratings.poor, color: "#f87171" },
+    ];
+  }, [ratings]);
+
+  async function fetchStats(projectId: string) {
+    setLoading(true);
+    setError(null);
+    try {
+      const [summaryResp, ratingsResp, histogramResp] = await Promise.all([
+        getProjectSummary(projectId, token || undefined),
+        getProjectRatings(projectId, token || undefined),
+        getProjectHistogram(projectId, 2, token || undefined),
+      ]);
+      setSummary(summaryResp);
+      setRatings(ratingsResp);
+      setHistogram(histogramResp);
+    } catch (err: any) {
+      setError(err.message || "Failed to load stats.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  const selectedProjectName =
+    projects.find((p) => p.id === selectedProject)?.name || "Select a project";
 
   return (
     <Screen>
@@ -25,72 +91,99 @@ export default function ProjectSummaryScreen() {
           Strength Overview
         </Text>
         <Text className="text-slate-400 text-xs mb-4">
-          Simple analytics for estimated in-place concrete strength.
+          ACI-aligned SonReb analytics: ratings + strength distribution.
         </Text>
 
-        <View className="flex-row gap-3 mb-3">
-          <View className="flex-1 rounded-xl bg-slate-800 p-3">
-            <Text className="text-slate-300 text-xs">Min fc′</Text>
-            <Text className="text-white text-xl font-semibold">
-              {minFc.toFixed(1)} MPa
-            </Text>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} className="mb-4">
+          <View className="flex-row gap-2">
+            {projects.map((project) => (
+              <TouchableOpacity
+                key={project.id}
+                className={`px-3 py-2 rounded-full border ${
+                  selectedProject === project.id
+                    ? "bg-emerald-600 border-emerald-500"
+                    : "border-slate-600"
+                }`}
+                onPress={() => {
+                  setSelectedProject(project.id);
+                  fetchStats(project.id);
+                }}
+              >
+                <Text
+                  className={`text-sm ${
+                    selectedProject === project.id ? "text-white" : "text-slate-200"
+                  }`}
+                >
+                  {project.name}
+                </Text>
+              </TouchableOpacity>
+            ))}
           </View>
+        </ScrollView>
 
-          <View className="flex-1 rounded-xl bg-slate-800 p-3">
-            <Text className="text-slate-300 text-xs">Max fc′</Text>
-            <Text className="text-white text-xl font-semibold">
-              {maxFc.toFixed(1)} MPa
-            </Text>
+        {loading && (
+          <View className="items-center justify-center py-8">
+            <ActivityIndicator color="#34d399" />
           </View>
-        </View>
+        )}
 
-        <View className="rounded-xl bg-slate-800 p-3 mb-4">
-          <Text className="text-slate-300 text-xs mb-1">Average fc′</Text>
-          <Text className="text-white text-2xl font-semibold">
-            {avgFc.toFixed(1)} MPa
-          </Text>
-          <Text className="text-slate-400 text-xs mt-2">
-            Compare average fc′ with design strength to assess reserve
-            or deficit.
-          </Text>
-        </View>
-
-        <View className="rounded-xl bg-slate-800 p-4 mb-4">
-          <Text className="text-slate-300 text-sm mb-2">
-            Rating Counts (Dummy)
-          </Text>
-          <View className="flex-row justify-between">
-            <View className="items-center flex-1">
-              <Text className="text-emerald-300 text-lg font-semibold">
-                {ratingCounts.GOOD}
-              </Text>
-              <Text className="text-slate-400 text-xs">GOOD</Text>
-            </View>
-            <View className="items-center flex-1">
-              <Text className="text-amber-300 text-lg font-semibold">
-                {ratingCounts.FAIR}
-              </Text>
-              <Text className="text-slate-400 text-xs">FAIR</Text>
-            </View>
-            <View className="items-center flex-1">
-              <Text className="text-red-300 text-lg font-semibold">
-                {ratingCounts.POOR}
-              </Text>
-              <Text className="text-slate-400 text-xs">POOR</Text>
-            </View>
+        {error && (
+          <View className="bg-rose-500/10 border border-rose-500/40 rounded-lg p-3 mb-4">
+            <Text className="text-rose-100 text-sm">{error}</Text>
           </View>
-        </View>
+        )}
 
-        <View className="rounded-xl bg-slate-800 p-4">
-          <Text className="text-slate-300 text-sm mb-1">
-            Notes
-          </Text>
-          <Text className="text-slate-200 text-xs">
-            In future versions, this page can show histograms of fc′,
-            distribution per member, and exportable PDF reports per
-            project.
-          </Text>
-        </View>
+        {!loading && !error && summary && (
+          <>
+            <View className="rounded-xl bg-slate-800 p-4 mb-3">
+              <Text className="text-slate-400 text-xs mb-1">
+                {selectedProjectName}
+              </Text>
+              <Text className="text-white text-3xl font-semibold mb-1">
+                {summary.avg_fc ? summary.avg_fc.toFixed(1) : "--"} MPa
+              </Text>
+              <Text className="text-slate-400 text-xs">
+                {summary.readings_count} readings · min{" "}
+                {summary.min_fc !== null ? summary.min_fc.toFixed(1) : "--"} · max{" "}
+                {summary.max_fc !== null ? summary.max_fc.toFixed(1) : "--"}
+              </Text>
+            </View>
+
+            <View className="rounded-xl bg-slate-800 p-4 mb-3">
+              <Text className="text-slate-300 text-sm mb-3">Rating mix</Text>
+              <PieChart segments={pieSegments} size={180} />
+              <View className="flex-row justify-around mt-3">
+                <Text className="text-emerald-300 text-sm">
+                  GOOD {ratings?.good ?? 0}
+                </Text>
+                <Text className="text-amber-300 text-sm">
+                  FAIR {ratings?.fair ?? 0}
+                </Text>
+                <Text className="text-red-300 text-sm">
+                  POOR {ratings?.poor ?? 0}
+                </Text>
+              </View>
+            </View>
+
+            <View className="rounded-xl bg-slate-800 p-4 mb-3">
+              <View className="flex-row items-center justify-between mb-2">
+                <Text className="text-slate-300 text-sm">
+                  fc' histogram (2 MPa bins)
+                </Text>
+                <Text className="text-slate-400 text-xs">
+                  {histogram?.bins.length ?? 0} bins
+                </Text>
+              </View>
+              {histogram && histogram.bins.length > 0 ? (
+                <HistogramChart bins={histogram.bins} />
+              ) : (
+                <Text className="text-slate-400 text-xs">
+                  No readings yet for this project.
+                </Text>
+              )}
+            </View>
+          </>
+        )}
       </ScrollView>
     </Screen>
   );

@@ -1,30 +1,46 @@
-import React, { useState } from "react";
-import { View, Text, TouchableOpacity, ScrollView } from "react-native";
-import { useLocalSearchParams, Link } from "expo-router";
+import React, { useEffect, useState } from "react";
+import { View, Text, TouchableOpacity, ScrollView, ActivityIndicator } from "react-native";
+import { useLocalSearchParams, Link, useRouter } from "expo-router";
 import Screen from "../../../components/layout/Screen";
+import { getProject, Project } from "../../../services/projectService";
+import { useAuthStore } from "../../../store/authStore";
 
-const TABS = ["Overview", "Members", "Readings", "Calibration", "Summary"];
+const TABS = ["Overview", "Members", "Calibration"];
 
 export default function ProjectOverviewScreen() {
+  const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
+  const { token } = useAuthStore();
+  const [project, setProject] = useState<Project | null>(null);
   const [activeTab, setActiveTab] = useState<string>("Overview");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  // Dummy project data
-  const projectName = "Hospital Wing A";
-  const location = "Quezon City";
-  const designFc = 28;
+  useEffect(() => {
+    async function load() {
+      if (!id) return;
+      try {
+        setLoading(true);
+        const data = await getProject(id as string, token || undefined);
+        setProject(data);
+      } catch (err: any) {
+        setError(err.message || "Unable to load project.");
+      } finally {
+        setLoading(false);
+      }
+    }
+    load();
+  }, [id, token]);
 
   return (
     <Screen>
       <View className="mb-4">
-        <Text className="text-xs text-emerald-400 uppercase">
-          Project
-        </Text>
+        <Text className="text-xs text-emerald-400 uppercase">Project</Text>
         <Text className="text-xl font-bold text-white">
-          {projectName}
+          {project?.name || "Project"}
         </Text>
         <Text className="text-slate-400 text-xs mt-1">
-          {location} • ID: {id}
+          {project?.location || ""} • ID: {id}
         </Text>
       </View>
 
@@ -60,129 +76,74 @@ export default function ProjectOverviewScreen() {
         </View>
       </ScrollView>
 
-      <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
-        {/* ---------------- Overview TAB ---------------- */}
-        {activeTab === "Overview" && (
-          <View className="gap-3">
-            <View className="rounded-xl bg-slate-800 p-4">
-              <Text className="text-slate-300 text-sm mb-1">
-                Design fc′
-              </Text>
-              <Text className="text-white text-xl font-semibold">
-                {designFc} MPa
+      {error ? (
+        <View className="bg-rose-500/10 border border-rose-500/40 rounded-lg p-3 mb-3">
+          <Text className="text-rose-100 text-xs">{error}</Text>
+        </View>
+      ) : null}
+
+      {loading ? (
+        <View className="items-center justify-center py-8">
+          <ActivityIndicator color="#34d399" />
+        </View>
+      ) : (
+        <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
+          {activeTab === "Overview" && (
+            <View className="gap-3">
+              <View className="rounded-xl bg-slate-800 p-4">
+                <Text className="text-slate-300 text-sm mb-1">Design fc'</Text>
+                <Text className="text-white text-xl font-semibold">
+                  {project?.design_fc ? `${project.design_fc} MPa` : "--"}
+                </Text>
+              </View>
+              <View className="rounded-xl bg-slate-800 p-4">
+                <Text className="text-slate-300 text-sm mb-1">
+                  Active Model
+                </Text>
+                <Text className="text-white text-base font-semibold">
+                  {project?.status === "calibrated" ? "Calibrated" : "No model yet"}
+                </Text>
+                <Text className="text-slate-400 text-xs mt-2">
+                  Add calibration points and generate a model to activate project-specific SonReb coefficients.
+                </Text>
+              </View>
+            </View>
+          )}
+
+          {activeTab === "Members" && (
+            <View className="gap-3">
+              <View className="flex-row justify-between items-center mb-2">
+                <Text className="text-slate-200 font-semibold">Members</Text>
+                <Link href="/projects/members/new" asChild>
+                  <TouchableOpacity className="rounded-xl bg-emerald-600 px-3 py-2">
+                    <Text className="text-white text-xs font-semibold">
+                      + New Member
+                    </Text>
+                  </TouchableOpacity>
+                </Link>
+              </View>
+              <Text className="text-slate-400 text-xs">
+                Members list not implemented yet.
               </Text>
             </View>
+          )}
 
-            <View className="rounded-xl bg-slate-800 p-4">
-              <Text className="text-slate-300 text-sm mb-1">
-                Active Model
-              </Text>
-              <Text className="text-white text-base font-semibold">
-                No model yet
-              </Text>
-              <Text className="text-slate-400 text-xs mt-2">
-                Add calibration points and generate a model to activate
-                project-specific SonReb coefficients.
-              </Text>
-            </View>
-          </View>
-        )}
-
-        {/* ---------------- Members TAB ---------------- */}
-        {activeTab === "Members" && (
-          <View className="gap-3">
-            <View className="flex-row justify-between items-center mb-2">
-              <Text className="text-slate-200 font-semibold">
-                Members
-              </Text>
-
-              {/* This is the ONLY navigation you need for members in v1 */}
-              <Link href="/projects/members/new" asChild>
-                <TouchableOpacity className="rounded-xl bg-emerald-600 px-3 py-2">
-                  <Text className="text-white text-xs font-semibold">
-                    + New Member
+          {activeTab === "Calibration" && (
+            <View className="gap-3">
+              <Link href="/calibration" asChild>
+                <TouchableOpacity className="rounded-xl bg-slate-800 p-4 active:bg-slate-700">
+                  <Text className="text-white font-semibold mb-1">
+                    Calibration Points
+                  </Text>
+                  <Text className="text-slate-400 text-xs">
+                    View all core strengths and regression status.
                   </Text>
                 </TouchableOpacity>
               </Link>
             </View>
-
-            {/* Example static member card (no navigation needed for now) */}
-            <View className="rounded-xl bg-slate-800 p-4">
-              <Text className="text-white font-semibold">C1</Text>
-              <Text className="text-slate-400 text-xs mt-1">
-                Column • Level 1 • Grid A-3
-              </Text>
-            </View>
-          </View>
-        )}
-
-        {/* ---------------- Readings TAB ---------------- */}
-        {activeTab === "Readings" && (
-          <View className="gap-3">
-            <View className="flex-row justify-between items-center mb-2">
-              <Text className="text-slate-200 font-semibold">
-                Readings
-              </Text>
-              <Link href="/readings/new" asChild>
-                <TouchableOpacity className="rounded-xl bg-emerald-600 px-3 py-2">
-                  <Text className="text-white text-xs font-semibold">
-                    + New Reading
-                  </Text>
-                </TouchableOpacity>
-              </Link>
-            </View>
-
-            <Link
-              href={{
-                pathname: "/readings/[id]",
-                params: { id: "r1" },
-              }}
-              asChild
-            >
-              <TouchableOpacity className="rounded-xl bg-slate-800 p-4 active:bg-slate-700">
-                <Text className="text-white font-semibold">
-                  C1 – North Face Mid-height
-                </Text>
-                <Text className="text-slate-400 text-xs mt-1">
-                  fc′ est. 26.4 MPa • Rating: GOOD
-                </Text>
-              </TouchableOpacity>
-            </Link>
-          </View>
-        )}
-
-        {/* ---------------- Calibration TAB ---------------- */}
-        {activeTab === "Calibration" && (
-          <View className="gap-3">
-            <Link href="/calibration" asChild>
-              <TouchableOpacity className="rounded-xl bg-slate-800 p-4 active:bg-slate-700">
-                <Text className="text-white font-semibold mb-1">
-                  Calibration Points
-                </Text>
-                <Text className="text-slate-400 text-xs">
-                  View all core strengths and regression status.
-                </Text>
-              </TouchableOpacity>
-            </Link>
-          </View>
-        )}
-
-        {/* ---------------- Summary TAB ---------------- */}
-        {activeTab === "Summary" && (
-          <View className="gap-3">
-            <Link href="/summary" asChild>
-              <TouchableOpacity className="rounded-xl bg-slate-800 p-4 active:bg-slate-700">
-                <Text className="text-white font-semibold mb-1">
-                  Project Summary
-                </Text>
-                <Text className="text-slate-400 text-xs">
-                  View min/avg/max fc′, rating counts, and simple charts.
-                </Text>
-              </TouchableOpacity>
-            </Link>
-          </View>
-        )}
-      </ScrollView>
+          )}
+        </ScrollView>
+      )}
     </Screen>
   );
 }

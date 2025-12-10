@@ -1,12 +1,17 @@
 import React, { useState } from "react";
-import { ScrollView, Text } from "react-native";
-import { useRouter } from "expo-router";
+import { ScrollView, Text, Alert, TouchableOpacity } from "react-native";
+import { useRouter, useLocalSearchParams } from "expo-router";
 import Screen from "../../../components/layout/Screen";
 import Input from "../../../components/ui/Input";
 import Button from "../../../components/ui/Button";
+import { createCalibrationPoint } from "../../../services/calibrationService";
+import { useAuthStore } from "../../../store/authStore";
 
 export default function AddCalibrationPointScreen() {
   const router = useRouter();
+  const params = useLocalSearchParams<{ projectId?: string }>();
+  const projectId = params.projectId as string | undefined;
+  const { token } = useAuthStore();
 
   const [member, setMember] = useState("");
   const [upv, setUpv] = useState("");
@@ -14,10 +19,42 @@ export default function AddCalibrationPointScreen() {
   const [carbonation, setCarbonation] = useState("");
   const [coreFc, setCoreFc] = useState("");
   const [notes, setNotes] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  const handleSave = () => {
-    // TODO: save calibration point via backend
-    router.back();
+  const handleSave = async () => {
+    if (!projectId) {
+      Alert.alert("Missing project", "Select a project before adding points.");
+      return;
+    }
+    if (!upv || !rh || !coreFc) {
+      Alert.alert("Missing data", "UPV, RH, and core fc' are required.");
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const payload: any = {
+        project: projectId,
+        upv: parseFloat(upv),
+        rh_index: parseFloat(rh),
+        core_fc: parseFloat(coreFc),
+        notes: notes,
+      };
+      if (member) payload.member = member;
+      if (carbonation) payload.carbonation_depth = parseFloat(carbonation);
+
+      await createCalibrationPoint(payload, token || undefined);
+      router.back();
+    } catch (err: any) {
+      if (err?.status === 401 || err?.status === 403) {
+        await useAuthStore.getState().clearAuth();
+        router.replace("/(auth)/login");
+        return;
+      }
+      Alert.alert("Save failed", err.message || "Could not save point.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -62,7 +99,7 @@ export default function AddCalibrationPointScreen() {
         />
 
         <Input
-          label="Core fc′ (MPa)"
+          label="Core fc' (MPa)"
           keyboardType="numeric"
           value={coreFc}
           onChangeText={setCoreFc}
@@ -77,7 +114,15 @@ export default function AddCalibrationPointScreen() {
           multiline
         />
 
-        <Button title="Save Calibration Point" onPress={handleSave} />
+        <Button
+          title={loading ? "Saving..." : "Save Calibration Point"}
+          onPress={handleSave}
+          disabled={loading}
+        />
+
+        <TouchableOpacity onPress={() => router.back()} className="mt-3">
+          <Text className="text-emerald-400 text-xs">Cancel</Text>
+        </TouchableOpacity>
       </ScrollView>
     </Screen>
   );
