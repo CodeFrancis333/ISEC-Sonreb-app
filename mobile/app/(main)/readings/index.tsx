@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator } from "react-native";
 import { Link, useRouter } from "expo-router";
 import Screen from "../../../components/layout/Screen";
-import { listReadings, Reading } from "../../../services/readingService";
+import { listReadings, deleteReading, Reading } from "../../../services/readingService";
 import { useAuthStore } from "../../../store/authStore";
 
 export default function AllReadingsListScreen() {
@@ -33,7 +33,7 @@ export default function AllReadingsListScreen() {
   }, [token]);
 
   return (
-    <Screen>
+    <Screen showNav>
       <View className="mb-4">
         <Text className="text-xs text-emerald-400 uppercase">
           Readings
@@ -60,26 +60,36 @@ export default function AllReadingsListScreen() {
         <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
           <View className="gap-3">
             {readings.map((reading) => (
-              <Link
-                key={reading.id}
-                href={{
-                  pathname: "/readings/[id]",
-                  params: { id: reading.id },
-                }}
-                asChild
-              >
-                <TouchableOpacity className="rounded-xl bg-slate-800 p-4 active:bg-slate-700">
-                  <Text className="text-white font-semibold">
-                    {(reading as any).project_name || reading.project} • {reading.member || "N/A"}
-                  </Text>
-                  <Text className="text-slate-400 text-xs mt-1">
-                    fc' est. {reading.estimated_fc.toFixed(1)} MPa • {reading.rating}
-                  </Text>
-                  <Text className="text-slate-500 text-xs mt-2">
-                    Model: {reading.model_used}
-                  </Text>
+              <View key={reading.id}>
+                <Link
+                  href={{
+                    pathname: "/readings/[id]",
+                    params: { id: reading.id },
+                  }}
+                  asChild
+                >
+                  <TouchableOpacity className="rounded-xl bg-slate-800 p-4 active:bg-slate-700">
+                    <Text className="text-white font-semibold">
+                      {(reading as any).project_name || reading.project} • {reading.member || "N/A"}
+                    </Text>
+                    <Text className="text-slate-400 text-xs mt-1">
+                      fc' est. {reading.estimated_fc.toFixed(1)} MPa • {reading.rating}
+                    </Text>
+                    <Text className="text-slate-500 text-xs mt-2">
+                      Model: {reading.model_used}
+                    </Text>
+                  </TouchableOpacity>
+                </Link>
+                <TouchableOpacity
+                  onPress={async () => {
+                    await deleteReading(reading.id, token || undefined);
+                    setReadings((prev) => prev.filter((r) => r.id !== reading.id));
+                  }}
+                  className="mt-1"
+                >
+                  <Text className="text-rose-300 text-xs">Delete</Text>
                 </TouchableOpacity>
-              </Link>
+              </View>
             ))}
             {!readings.length && (
               <Text className="text-slate-400 text-xs">No readings yet.</Text>

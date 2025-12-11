@@ -103,6 +103,30 @@ export async function getProject(
   });
 }
 
+export async function updateProject(
+  projectId: string,
+  payload: Partial<CreateProjectPayload>,
+  token?: string | null
+): Promise<Project> {
+  // PATCH /api/projects/{id}/
+  return apiRequest<Project>(`/projects/${projectId}/`, {
+    method: "PATCH",
+    body: payload,
+    token: token || undefined,
+  });
+}
+
+export async function deleteProject(
+  projectId: string,
+  token?: string | null
+): Promise<void> {
+  // DELETE /api/projects/{id}/
+  return apiRequest<void>(`/projects/${projectId}/`, {
+    method: "DELETE",
+    token: token || undefined,
+  });
+}
+
 export async function createMember(
   payload: CreateMemberPayload,
   token?: string | null
@@ -122,6 +146,35 @@ export async function listMembers(
   // GET /api/projects/{id}/members/
   return apiRequest<Member[]>(`/projects/${projectId}/members/`, {
     method: "GET",
+    token: token || undefined,
+  });
+}
+
+export async function updateMember(
+  projectId: string,
+  memberId: string,
+  payload: Partial<CreateMemberPayload>,
+  token?: string | null
+): Promise<Member> {
+  // PATCH /api/projects/{project}/members/{memberId}/
+  return apiRequest<Member>(
+    `/projects/${projectId}/members/${memberId}/`,
+    {
+      method: "PATCH",
+      body: payload,
+      token: token || undefined,
+    }
+  );
+}
+
+export async function deleteMember(
+  projectId: string,
+  memberId: string,
+  token?: string | null
+): Promise<void> {
+  // DELETE /api/projects/{project}/members/{memberId}/
+  return apiRequest<void>(`/projects/${projectId}/members/${memberId}/`, {
+    method: "DELETE",
     token: token || undefined,
   });
 }

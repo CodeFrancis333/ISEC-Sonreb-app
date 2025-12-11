@@ -69,3 +69,27 @@ export async function createReading(
     token: token || undefined,
   });
 }
+
+export async function deleteReading(
+  id: string,
+  token?: string | null
+): Promise<void> {
+  // DELETE /api/readings/{id}/
+  return apiRequest<void>(`/readings/${id}/`, {
+    method: "DELETE",
+    token: token || undefined,
+  });
+}
+
+export async function updateReading(
+  id: string,
+  payload: Partial<CreateReadingPayload>,
+  token?: string | null
+): Promise<Reading> {
+  // PATCH /api/readings/{id}/
+  return apiRequest<Reading>(`/readings/${id}/`, {
+    method: "PATCH",
+    body: payload,
+    token: token || undefined,
+  });
+}

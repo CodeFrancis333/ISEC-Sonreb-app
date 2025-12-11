@@ -51,7 +51,7 @@ export default function MainHomeScreen() {
   };
 
   return (
-    <Screen>
+    <Screen showNav>
       <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
         <View className="flex-row items-center justify-between mb-2">
           <View>

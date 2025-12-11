@@ -1,36 +1,47 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Alert } from "react-native";
-import { Link, useRouter } from "expo-router";
+import { Link, useRouter, useFocusEffect } from "expo-router";
 import Screen from "../../../components/layout/Screen";
 import { useAuthStore } from "../../../store/authStore";
 import { listProjects, Project } from "../../../services/projectService";
-import { listCalibrationPoints, CalibrationPoint } from "../../../services/calibrationService";
+import { listCalibrationPoints, CalibrationPoint, deleteCalibrationPoint } from "../../../services/calibrationService";
+import Select from "../../../components/ui/Select";
 
 export default function CalibrationPointsListScreen() {
   const router = useRouter();
   const { token } = useAuthStore();
   const [projects, setProjects] = useState<Project[]>([]);
   const [selectedProject, setSelectedProject] = useState<string | null>(null);
+  const [showProjectList, setShowProjectList] = useState(false);
   const [points, setPoints] = useState<CalibrationPoint[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    async function init() {
-      try {
-        const projList = await listProjects(token || undefined);
-        setProjects(projList);
-        const firstId = projList[0]?.id || null;
-        setSelectedProject(firstId);
-        if (firstId) {
-          await fetchPoints(firstId);
-        }
-      } catch (err: any) {
-        setError(err.message || "Unable to load projects.");
+  const init = useCallback(async () => {
+    try {
+      const projList = await listProjects(token || undefined);
+      setProjects(projList);
+      const firstId = projList[0]?.id || null;
+      setSelectedProject(firstId);
+      if (firstId) {
+        await fetchPoints(firstId);
       }
+    } catch (err: any) {
+      setError(err.message || "Unable to load projects.");
     }
-    init();
   }, [token]);
+
+  useEffect(() => {
+    init();
+  }, [init]);
+
+  useFocusEffect(
+    useCallback(() => {
+      if (selectedProject) {
+        fetchPoints(selectedProject);
+      }
+    }, [selectedProject])
+  );
 
   async function fetchPoints(projectId: string) {
     setLoading(true);
@@ -55,7 +66,7 @@ export default function CalibrationPointsListScreen() {
   const minCarbonation = 8;
 
   return (
-    <Screen>
+    <Screen showNav>
       <View className="flex-row justify-between items-center mb-4">
         <View className="flex-1">
           <Text className="text-xs text-emerald-400 uppercase">
@@ -99,26 +110,30 @@ export default function CalibrationPointsListScreen() {
         </View>
       )}
 
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} className="mb-3">
-        <View className="flex-row gap-2">
+      <Select
+        label="Select Project"
+        value={selectedProject ? projects.find((p) => p.id === selectedProject)?.name : ""}
+        placeholder={projects.length ? "Choose a project" : "No projects available"}
+        onPress={() => setShowProjectList((prev) => !prev)}
+      />
+      {showProjectList && projects.length > 0 && (
+        <View className="mb-3 rounded-xl border border-slate-700 bg-slate-800/90">
           {projects.map((p) => (
             <TouchableOpacity
               key={p.id}
               onPress={() => {
                 setSelectedProject(p.id);
                 fetchPoints(p.id);
+                setShowProjectList(false);
               }}
-              className={`px-3 py-2 rounded-full border ${
-                selectedProject === p.id ? "border-emerald-500 bg-emerald-500/10" : "border-slate-600"
-              }`}
+              className={`px-3 py-2 ${selectedProject === p.id ? "bg-emerald-500/10" : ""}`}
             >
-              <Text className={selectedProject === p.id ? "text-white text-xs" : "text-slate-200 text-xs"}>
-                {p.name}
-              </Text>
+              <Text className="text-white text-sm">{p.name}</Text>
+              <Text className="text-slate-400 text-xs">{p.location}</Text>
             </TouchableOpacity>
           ))}
         </View>
-      </ScrollView>
+      )}
 
       <View className="rounded-xl bg-slate-800 p-3 mb-3">
         <Text className="text-slate-200 text-xs">Requirements:</Text>
@@ -157,6 +172,15 @@ export default function CalibrationPointsListScreen() {
                 <Text className="text-slate-500 text-xs mt-1">
                   {new Date(p.created_at).toISOString().slice(0, 10)}
                 </Text>
+                <TouchableOpacity
+                  onPress={async () => {
+                    await deleteCalibrationPoint(p.id, token || undefined);
+                    if (selectedProject) fetchPoints(selectedProject);
+                  }}
+                  className="mt-2"
+                >
+                  <Text className="text-rose-300 text-xs">Delete</Text>
+                </TouchableOpacity>
               </View>
             ))}
             {!points.length && (

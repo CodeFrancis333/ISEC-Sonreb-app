@@ -1,33 +1,46 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator } from "react-native";
-import { Link } from "expo-router";
+import { Link, useFocusEffect, useRouter } from "expo-router";
 import Screen from "../../../components/layout/Screen";
-import { listProjects, Project } from "../../../services/projectService";
+import { listProjects, Project, deleteProject } from "../../../services/projectService";
 import { useAuthStore } from "../../../store/authStore";
 
 export default function ProjectsListScreen() {
   const { token } = useAuthStore();
+  const router = useRouter();
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    async function load() {
-      try {
-        setLoading(true);
-        const data = await listProjects(token || undefined);
-        setProjects(data);
-      } catch (err: any) {
-        setError(err.message || "Unable to load projects.");
-      } finally {
-        setLoading(false);
+  const loadProjects = useCallback(async () => {
+    try {
+      setLoading(true);
+      const data = await listProjects(token || undefined);
+      setProjects(data);
+    } catch (err: any) {
+      if (err?.status === 401 || err?.status === 403) {
+        await useAuthStore.getState().clearAuth();
+        router.replace("/(auth)/login");
+        return;
       }
+      setError(err.message || "Unable to load projects.");
+    } finally {
+      setLoading(false);
     }
-    load();
-  }, [token]);
+  }, [router, token]);
+
+  useEffect(() => {
+    loadProjects();
+  }, [loadProjects]);
+
+  useFocusEffect(
+    useCallback(() => {
+      loadProjects();
+    }, [loadProjects])
+  );
 
   return (
-    <Screen>
+    <Screen showNav>
       <View className="flex-row items-center justify-between mb-4">
         <View>
           <Text className="text-xs text-emerald-400 uppercase">
@@ -58,46 +71,56 @@ export default function ProjectsListScreen() {
         <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
           <View className="gap-3">
             {projects.map((project) => (
-              <Link
-                key={project.id}
-                href={{
-                  pathname: "/projects/[id]",
-                  params: { id: project.id },
-                }}
-                asChild
-              >
-                <TouchableOpacity className="rounded-xl bg-slate-800 p-4 active:bg-slate-700">
-                  <Text className="text-white font-semibold">
-                    {project.name}
-                  </Text>
-                  <Text className="text-slate-400 text-xs mt-1">
-                    {project.location}
-                  </Text>
-
-                  <View className="flex-row mt-3 justify-between items-center">
-                    <Text className="text-xs text-slate-400">
-                    {(project as any).readings_count ?? 0} readings
+              <View key={project.id} className="rounded-xl bg-slate-800 p-4">
+                <Link
+                  href={{
+                    pathname: "/projects/[id]",
+                    params: { id: project.id },
+                  }}
+                  asChild
+                >
+                  <TouchableOpacity className="active:bg-slate-700 rounded-lg p-1">
+                    <Text className="text-white font-semibold">
+                      {project.name}
                     </Text>
-                    <View
-                      className={`px-2 py-1 rounded-full ${
-                        project.status === "calibrated"
-                          ? "bg-emerald-500/20"
-                          : "bg-amber-500/10"
-                      }`}
-                    >
-                      <Text
-                        className={`text-xs font-semibold ${
+                    <Text className="text-slate-400 text-xs mt-1">
+                      {project.location}
+                    </Text>
+
+                    <View className="flex-row mt-3 justify-between items-center">
+                      <Text className="text-xs text-slate-400">
+                        {(project as any).readings_count ?? 0} readings
+                      </Text>
+                      <View
+                        className={`px-2 py-1 rounded-full ${
                           project.status === "calibrated"
-                            ? "text-emerald-300"
-                            : "text-amber-300"
+                            ? "bg-emerald-500/20"
+                            : "bg-amber-500/10"
                         }`}
                       >
-                        {project.status === "calibrated" ? "Calibrated" : "No model"}
-                      </Text>
+                        <Text
+                          className={`text-xs font-semibold ${
+                            project.status === "calibrated"
+                              ? "text-emerald-300"
+                              : "text-amber-300"
+                          }`}
+                        >
+                          {project.status === "calibrated" ? "Calibrated" : "No model"}
+                        </Text>
+                      </View>
                     </View>
-                  </View>
+                  </TouchableOpacity>
+                </Link>
+                <TouchableOpacity
+                  onPress={async () => {
+                    await deleteProject(project.id, token || undefined);
+                    loadProjects();
+                  }}
+                  className="mt-2"
+                >
+                  <Text className="text-rose-300 text-xs">Delete</Text>
                 </TouchableOpacity>
-              </Link>
+              </View>
             ))}
             {!projects.length && !loading && (
               <Text className="text-slate-400 text-xs">No projects yet. Tap + New to add one.</Text>

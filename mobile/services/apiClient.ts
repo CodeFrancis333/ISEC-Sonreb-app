@@ -9,14 +9,15 @@ interface RequestOptions {
     body?: any; // Used for POST, PUT, PATCH
     params?: Record<string, string | number | boolean>; // Used for GET/query params
     auth?: boolean; // Whether to send Authorization header
+    token?: string; // Optional token override
 }
 
 /**
  * Core function to handle all API requests.
  */
 export async function apiRequest<T>(path: string, options: RequestOptions = {}): Promise<T> {
-    const { method = "GET", body, params, auth = true } = options;
-    const token = useAuthStore.getState().token;
+    const { method = "GET", body, params, auth = true, token: tokenOverride } = options;
+    const token = tokenOverride ?? useAuthStore.getState().token;
     
     // 1. Build the URL
     let url = `${API_BASE_URL}${path}`;

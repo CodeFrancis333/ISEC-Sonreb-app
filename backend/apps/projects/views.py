@@ -57,6 +57,23 @@ class ProjectDetailView(APIView):
         serializer = ProjectSerializer(project)
         return Response(serializer.data)
 
+    def delete(self, request, pk):
+        project = self.get_object(pk, request.user)
+        if not project:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+        project.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+    def patch(self, request, pk):
+        project = self.get_object(pk, request.user)
+        if not project:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+        serializer = ProjectSerializer(project, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
 
 class ProjectMembersView(APIView):
     permission_classes = [IsAuthenticated]
@@ -87,6 +104,33 @@ class ProjectMembersView(APIView):
                 MemberSerializer(member).data,
                 status=status.HTTP_201_CREATED,
             )
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class ProjectMemberDetailView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def delete(self, request, pk, member_id):
+        project = Project.objects.filter(pk=pk, owner=request.user).first()
+        if not project:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+        member = Member.objects.filter(pk=member_id, project=project).first()
+        if not member:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+        member.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+    def patch(self, request, pk, member_id):
+        project = Project.objects.filter(pk=pk, owner=request.user).first()
+        if not project:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+        member = Member.objects.filter(pk=member_id, project=project).first()
+        if not member:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+        serializer = MemberSerializer(member, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 

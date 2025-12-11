@@ -257,3 +257,24 @@ class CalibrationDiagnosticsView(APIView):
             "points": data_points,
         }
         return Response(payload)
+
+
+class CalibrationPointDetailView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def delete(self, request, pk):
+        point = CalibrationPoint.objects.filter(pk=pk, project__owner=request.user).first()
+        if not point:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+        point.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+    def patch(self, request, pk):
+        point = CalibrationPoint.objects.filter(pk=pk, project__owner=request.user).first()
+        if not point:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+        serializer = CalibrationPointSerializer(point, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

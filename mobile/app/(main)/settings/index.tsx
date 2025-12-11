@@ -11,7 +11,7 @@ export default function SettingsScreen() {
   const [showModelDetails, setShowModelDetails] = useState(true);
 
   return (
-    <Screen>
+    <Screen showNav>
       <ScrollView className="flex-1">
 
         {/* Header */}

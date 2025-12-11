@@ -100,6 +100,30 @@ export async function getActiveModel(
   );
 }
 
+export async function deleteCalibrationPoint(
+  pointId: string,
+  token?: string | null
+): Promise<void> {
+  // DELETE /api/calibration/points/{id}/
+  return apiRequest<void>(`/calibration/points/${pointId}/`, {
+    method: "DELETE",
+    token: token || undefined,
+  });
+}
+
+export async function updateCalibrationPoint(
+  pointId: string,
+  payload: Partial<CreateCalibrationPointPayload>,
+  token?: string | null
+): Promise<CalibrationPoint> {
+  // PATCH /api/calibration/points/{id}/
+  return apiRequest<CalibrationPoint>(`/calibration/points/${pointId}/`, {
+    method: "PATCH",
+    body: payload,
+    token: token || undefined,
+  });
+}
+
 export type CalibrationDiagnosticPoint = {
   id: string;
   measured_fc: number;
