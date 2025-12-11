@@ -71,7 +71,7 @@ export default function ProjectsListScreen() {
         <ScrollView
           className="flex-1"
           showsVerticalScrollIndicator={false}
-          contentContainerStyle={{ paddingBottom: 150 }}
+          contentContainerStyle={{ paddingTop: 8, paddingBottom: 150 }}
         >
           <View className="gap-3">
             {projects.map((project) => (

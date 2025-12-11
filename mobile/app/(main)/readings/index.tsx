@@ -35,12 +35,8 @@ export default function AllReadingsListScreen() {
   return (
     <Screen showNav>
       <View className="mb-4">
-        <Text className="text-xs text-emerald-400 uppercase">
-          Readings
-        </Text>
-        <Text className="text-xl font-bold text-white">
-          All Readings
-        </Text>
+        <Text className="text-xs text-emerald-400 uppercase">Readings</Text>
+        <Text className="text-xl font-bold text-white">All Readings</Text>
         <Text className="text-slate-400 text-xs mt-1">
           Browse all saved readings across projects.
         </Text>
@@ -74,25 +70,49 @@ export default function AllReadingsListScreen() {
                 >
                   <TouchableOpacity className="rounded-xl bg-slate-800 p-4 active:bg-slate-700">
                     <Text className="text-white font-semibold">
-                      {(reading as any).project_name || reading.project} • {reading.member || "N/A"}
+                      {(reading as any).project_name || reading.project} → {reading.member || "N/A"}
                     </Text>
                     <Text className="text-slate-400 text-xs mt-1">
-                      fc' est. {reading.estimated_fc.toFixed(1)} MPa • {reading.rating}
+                      fc' est. {reading.estimated_fc.toFixed(1)} MPa → {reading.rating}
                     </Text>
                     <Text className="text-slate-500 text-xs mt-2">
                       Model: {reading.model_used}
                     </Text>
                   </TouchableOpacity>
                 </Link>
-                <TouchableOpacity
-                  onPress={async () => {
-                    await deleteReading(reading.id, token || undefined);
-                    setReadings((prev) => prev.filter((r) => r.id !== reading.id));
-                  }}
-                  className="mt-1"
-                >
-                  <Text className="text-rose-300 text-xs">Delete</Text>
-                </TouchableOpacity>
+                <View className="flex-row gap-4 mt-1">
+                  <Link
+                    href={{
+                      pathname: "/readings/edit",
+                      params: {
+                        id: reading.id,
+                        projectId: (reading as any).project || "",
+                        memberId: (reading as any).member || "",
+                        upv: String(reading.upv),
+                        rh: String(reading.rh_index),
+                        carbonation:
+                          (reading as any).carbonation_depth !== null &&
+                          (reading as any).carbonation_depth !== undefined
+                            ? String((reading as any).carbonation_depth)
+                            : "",
+                        location_tag: (reading as any).location_tag || "",
+                      },
+                    }}
+                    asChild
+                  >
+                    <TouchableOpacity>
+                      <Text className="text-emerald-300 text-xs">Edit</Text>
+                    </TouchableOpacity>
+                  </Link>
+                  <TouchableOpacity
+                    onPress={async () => {
+                      await deleteReading(reading.id, token || undefined);
+                      setReadings((prev) => prev.filter((r) => r.id !== reading.id));
+                    }}
+                  >
+                    <Text className="text-rose-300 text-xs">Delete</Text>
+                  </TouchableOpacity>
+                </View>
               </View>
             ))}
             {!readings.length && (

@@ -51,7 +51,6 @@ export default function CalibrationPointsListScreen() {
       setPoints(data);
     } catch (err: any) {
       if (err?.status === 401 || err?.status === 403) {
-        // Token invalid or expired; sign out and redirect to login
         await useAuthStore.getState().clearAuth();
         router.replace("/(auth)/login");
         return;
@@ -69,12 +68,8 @@ export default function CalibrationPointsListScreen() {
     <Screen showNav>
       <View className="flex-row justify-between items-center mb-4">
         <View className="flex-1">
-          <Text className="text-xs text-emerald-400 uppercase">
-            Calibration
-          </Text>
-          <Text className="text-xl font-bold text-white">
-            Calibration Points
-          </Text>
+          <Text className="text-xs text-emerald-400 uppercase">Calibration</Text>
+          <Text className="text-xl font-bold text-white">Calibration Points</Text>
           <Text className="text-slate-400 text-xs mt-1">
             You have {points.length} calibration points.
           </Text>
@@ -90,9 +85,7 @@ export default function CalibrationPointsListScreen() {
             disabled={!selectedProject}
             className={`rounded-xl px-3 py-2 ${selectedProject ? "bg-emerald-600" : "bg-slate-700"}`}
           >
-            <Text className="text-white text-xs font-semibold">
-              + Add
-            </Text>
+            <Text className="text-white text-xs font-semibold">+ Add</Text>
           </TouchableOpacity>
         </Link>
       </View>
@@ -165,26 +158,50 @@ export default function CalibrationPointsListScreen() {
             {points.map((p) => (
               <View key={p.id} className="rounded-xl bg-slate-800 p-4">
                 <Text className="text-white font-semibold">
-                  {(p.member as any) || "Member"} • Core: {p.core_fc.toFixed(1)} MPa
+                  {(p.member as any) || "Member"} → Core: {p.core_fc.toFixed(1)} MPa
                 </Text>
                 <Text className="text-slate-400 text-xs mt-1">
-                  UPV {p.upv} m/s • RH {p.rh_index}{" "}
+                  UPV {p.upv} m/s → RH {p.rh_index}{" "}
                   {p.carbonation_depth !== null && p.carbonation_depth !== undefined
-                    ? `• Carbonation ${p.carbonation_depth} mm`
+                    ? `→ Carbonation ${p.carbonation_depth} mm`
                     : ""}
                 </Text>
                 <Text className="text-slate-500 text-xs mt-1">
                   {new Date(p.created_at).toISOString().slice(0, 10)}
                 </Text>
-                <TouchableOpacity
-                  onPress={async () => {
-                    await deleteCalibrationPoint(p.id, token || undefined);
-                    if (selectedProject) fetchPoints(selectedProject);
-                  }}
-                  className="mt-2"
-                >
-                  <Text className="text-rose-300 text-xs">Delete</Text>
-                </TouchableOpacity>
+                <View className="flex-row gap-4 mt-2">
+                  <Link
+                    href={{
+                      pathname: "/calibration/edit-point",
+                      params: {
+                        pointId: p.id,
+                        projectId: selectedProject || "",
+                        member: (p as any).member || "",
+                        upv: String(p.upv),
+                        rh: String(p.rh_index),
+                        carbonation:
+                          p.carbonation_depth !== null && p.carbonation_depth !== undefined
+                            ? String(p.carbonation_depth)
+                            : "",
+                        core_fc: String(p.core_fc),
+                        notes: (p as any).notes || "",
+                      },
+                    }}
+                    asChild
+                  >
+                    <TouchableOpacity>
+                      <Text className="text-emerald-300 text-xs">Edit</Text>
+                    </TouchableOpacity>
+                  </Link>
+                  <TouchableOpacity
+                    onPress={async () => {
+                      await deleteCalibrationPoint(p.id, token || undefined);
+                      if (selectedProject) fetchPoints(selectedProject);
+                    }}
+                  >
+                    <Text className="text-rose-300 text-xs">Delete</Text>
+                  </TouchableOpacity>
+                </View>
               </View>
             ))}
             {!points.length && (
@@ -212,9 +229,7 @@ export default function CalibrationPointsListScreen() {
                   }
                 }}
               >
-                <Text className="text-white font-semibold text-sm">
-                  Generate Model
-                </Text>
+                <Text className="text-white font-semibold text-sm">Generate Model</Text>
               </TouchableOpacity>
             </Link>
           </View>

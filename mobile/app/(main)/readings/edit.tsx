@@ -1,0 +1,206 @@
+import React, { useEffect, useState } from "react";
+import { Text, ScrollView, Alert, TouchableOpacity, ActivityIndicator, View } from "react-native";
+import Screen from "../../../components/layout/Screen";
+import Input from "../../../components/ui/Input";
+import Button from "../../../components/ui/Button";
+import { useAuthStore } from "../../../store/authStore";
+import { listProjects, listMembers, Project, Member } from "../../../services/projectService";
+import { updateReading } from "../../../services/readingService";
+import { useRouter, useLocalSearchParams } from "expo-router";
+
+export default function EditReadingScreen() {
+  const router = useRouter();
+  const params = useLocalSearchParams<{
+    id?: string;
+    projectId?: string;
+    memberId?: string;
+    upv?: string;
+    rh?: string;
+    carbonation?: string;
+    location_tag?: string;
+  }>();
+  const readingId = params.id as string | undefined;
+  const { token } = useAuthStore();
+
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [members, setMembers] = useState<Member[]>([]);
+  const [projectId, setProjectId] = useState<string | null>(params.projectId ? String(params.projectId) : null);
+  const [memberId, setMemberId] = useState<string | null>(params.memberId ? String(params.memberId) : null);
+  const [locationTag, setLocationTag] = useState(params.location_tag ? String(params.location_tag) : "");
+  const [upv, setUpv] = useState(params.upv ? String(params.upv) : "");
+  const [rh, setRh] = useState(params.rh ? String(params.rh) : "");
+  const [carbonation, setCarbonation] = useState(params.carbonation ? String(params.carbonation) : "");
+  const [loading, setLoading] = useState(false);
+  const [loadingMeta, setLoadingMeta] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    async function loadProjects() {
+      try {
+        const data = await listProjects(token || undefined);
+        setProjects(data);
+        const first = projectId || data[0]?.id || null;
+        setProjectId(first);
+        if (first) {
+          await loadMembers(first);
+        }
+      } catch (err: any) {
+        setError(err.message || "Unable to load projects.");
+      } finally {
+        setLoadingMeta(false);
+      }
+    }
+    loadProjects();
+  }, [projectId, token]);
+
+  async function loadMembers(pid: string) {
+    try {
+      const data = await listMembers(pid, token || undefined);
+      setMembers(data);
+    } catch {
+      setMembers([]);
+    }
+  }
+
+  const handleSave = async () => {
+    if (!readingId) {
+      Alert.alert("Missing reading", "No reading id provided.");
+      return;
+    }
+    if (!projectId) {
+      Alert.alert("Select project", "Please select a project.");
+      return;
+    }
+    if (!upv || !rh) {
+      Alert.alert("Missing fields", "UPV and RH are required.");
+      return;
+    }
+    try {
+      setLoading(true);
+      const payload: any = {
+        project: projectId,
+        member: memberId || null,
+        location_tag: locationTag,
+        upv: parseFloat(upv),
+        rh_index: parseFloat(rh),
+      };
+      if (carbonation) payload.carbonation_depth = parseFloat(carbonation);
+
+      await updateReading(readingId, payload, token || undefined);
+      router.back();
+    } catch (err: any) {
+      Alert.alert("Update failed", err.message || "Could not save reading.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <Screen>
+      <ScrollView
+        className="flex-1"
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingBottom: 150 }}
+      >
+        <Text className="text-xl font-bold text-white mb-1">
+          Edit Reading
+        </Text>
+        <Text className="text-slate-300 mb-6">
+          Update field measurements for UPV, RH, and optional carbonation.
+        </Text>
+
+        {loadingMeta ? (
+          <View className="flex-row items-center gap-2">
+            <ActivityIndicator color="#34d399" />
+            <Text className="text-slate-400 text-sm">Loading projects...</Text>
+          </View>
+        ) : (
+          <>
+            <Text className="text-slate-200 text-sm mb-2">Project</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} className="mb-3">
+              <View className="flex-row gap-2">
+                {projects.map((p) => (
+                  <TouchableOpacity
+                    key={p.id}
+                    onPress={() => {
+                      setProjectId(p.id);
+                      setMemberId(null);
+                      loadMembers(p.id);
+                    }}
+                    className={`px-3 py-2 rounded-full border ${
+                      projectId === p.id ? "border-emerald-500 bg-emerald-500/10" : "border-slate-600"
+                    }`}
+                  >
+                    <Text className={projectId === p.id ? "text-white text-xs" : "text-slate-200 text-xs"}>
+                      {p.name}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </ScrollView>
+
+            <Text className="text-slate-200 text-sm mb-2">Member (optional)</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} className="mb-3">
+              <View className="flex-row gap-2">
+                {members.map((m) => (
+                  <TouchableOpacity
+                    key={m.id}
+                    onPress={() => setMemberId(m.id)}
+                    className={`px-3 py-2 rounded-full border ${
+                      memberId === m.id ? "border-emerald-500 bg-emerald-500/10" : "border-slate-600"
+                    }`}
+                  >
+                    <Text className={memberId === m.id ? "text-white text-xs" : "text-slate-200 text-xs"}>
+                      {m.member_id}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </ScrollView>
+
+            <Input
+              label="Location Tag (optional)"
+              value={locationTag}
+              onChangeText={setLocationTag}
+              placeholder="e.g. Grid A-1"
+            />
+
+            <Input
+              label="UPV (m/s)"
+              keyboardType="numeric"
+              value={upv}
+              onChangeText={setUpv}
+              placeholder="e.g. 4200"
+            />
+
+            <Input
+              label="Rebound Index"
+              keyboardType="numeric"
+              value={rh}
+              onChangeText={setRh}
+              placeholder="e.g. 32"
+            />
+
+            <Input
+              label="Carbonation Depth (mm, optional)"
+              keyboardType="numeric"
+              value={carbonation}
+              onChangeText={setCarbonation}
+              placeholder="e.g. 15"
+            />
+
+            <Button
+              title={loading ? "Saving..." : "Save Changes"}
+              onPress={handleSave}
+              disabled={loading}
+            />
+          </>
+        )}
+
+        <TouchableOpacity onPress={() => router.back()} className="mt-3">
+          <Text className="text-emerald-400 text-xs">Cancel</Text>
+        </TouchableOpacity>
+      </ScrollView>
+    </Screen>
+  );
+}

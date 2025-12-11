@@ -14,8 +14,6 @@ export default function RootLayout() {
     loadFromStorage();
   }, [loadFromStorage]);
 
-  if (!initialized) return null;
-
   return (
     <SafeAreaProvider>
       <StatusBar style="light" />

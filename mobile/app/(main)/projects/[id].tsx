@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback } from "react";
 import { View, Text, TouchableOpacity, ScrollView, ActivityIndicator } from "react-native";
-import { useLocalSearchParams, Link, useRouter, useFocusEffect } from "expo-router";
+import { useLocalSearchParams, Link, useRouter, useFocusEffect, Href } from "expo-router";
 import Screen from "../../../components/layout/Screen";
 import { getProject, Project, listMembers, Member, deleteMember } from "../../../services/projectService";
 import { useAuthStore } from "../../../store/authStore";
@@ -19,23 +19,26 @@ export default function ProjectOverviewScreen() {
   const [membersLoading, setMembersLoading] = useState(false);
   const [membersError, setMembersError] = useState<string | null>(null);
 
-  const loadMembers = useCallback(async (projectId: string) => {
-    try {
-      setMembersLoading(true);
-      setMembersError(null);
-      const data = await listMembers(projectId, token || undefined);
-      setMembers(data);
-    } catch (err: any) {
-      if (err?.status === 401 || err?.status === 403) {
-        await useAuthStore.getState().clearAuth();
-        router.replace("/(auth)/login");
-        return;
+  const loadMembers = useCallback(
+    async (projectId: string) => {
+      try {
+        setMembersLoading(true);
+        setMembersError(null);
+        const data = await listMembers(projectId, token || undefined);
+        setMembers(data);
+      } catch (err: any) {
+        if (err?.status === 401 || err?.status === 403) {
+          await useAuthStore.getState().clearAuth();
+          router.replace("/(auth)/login");
+          return;
+        }
+        setMembersError(err.message || "Unable to load members.");
+      } finally {
+        setMembersLoading(false);
       }
-      setMembersError(err.message || "Unable to load members.");
-    } finally {
-      setMembersLoading(false);
-    }
-  }, [router, token]);
+    },
+    [router, token]
+  );
 
   const loadProject = useCallback(async () => {
     if (!id) return;
@@ -66,161 +69,203 @@ export default function ProjectOverviewScreen() {
     }, [id, loadMembers, project])
   );
 
-  return (
-    <Screen showNav>
-      <View className="mb-3 px-4">
-        <Text className="text-xs text-emerald-400 uppercase">Project</Text>
-        <Text className="text-xl font-bold text-white">
-          {project?.name || "Project"}
-        </Text>
-        <Text className="text-slate-400 text-xs mt-1">
-          {project?.location || ""} • ID: {id}
-        </Text>
-      </View>
-
-      {/* Tabs */}
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} className="mb-2 px-4">
-        <View className="flex-row gap-2">
-          {TABS.map((tab) => {
-            const isActive = tab === activeTab;
-            return (
-              <TouchableOpacity
-                key={tab}
-                onPress={() => setActiveTab(tab)}
-                className={`h-10 px-4 rounded-full border items-center justify-center ${
-                  isActive
-                    ? "border-emerald-500 bg-emerald-500/10"
-                    : "border-slate-700 bg-slate-800/80"
+  const Tabs = (
+    <ScrollView horizontal showsHorizontalScrollIndicator={false} className="px-4 bg-slate-900">
+      <View className="flex-row gap-2 py-1">
+        {TABS.map((tab) => {
+          const isActive = tab === activeTab;
+          return (
+            <TouchableOpacity
+              key={tab}
+              onPress={() => setActiveTab(tab)}
+              className={`h-10 px-4 rounded-full border items-center justify-center ${
+                isActive
+                  ? "border-emerald-500 bg-emerald-500/10"
+                  : "border-slate-700 bg-slate-800/80"
+              }`}
+            >
+              <Text
+                className={`text-xs font-semibold ${
+                  isActive ? "text-emerald-300" : "text-slate-300"
                 }`}
               >
-                <Text
-                  className={`text-xs font-semibold ${
-                    isActive ? "text-emerald-300" : "text-slate-300"
-                  }`}
-                >
-                  {tab}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
-        </View>
-      </ScrollView>
+                {tab}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
+      </View>
+    </ScrollView>
+  );
 
-      {error ? (
-        <View className="bg-rose-500/10 border border-rose-500/40 rounded-lg p-3 mb-3">
-          <Text className="text-rose-100 text-xs">{error}</Text>
-        </View>
-      ) : null}
-
-      {loading ? (
-        <View className="items-center justify-center py-8">
-          <ActivityIndicator color="#34d399" />
-        </View>
-      ) : activeTab === "Members" ? (
-        <View className="px-4 pb-4">
-          <View className="flex-row justify-between items-center mb-2">
-            <Text className="text-slate-200 font-semibold">Members</Text>
-            <Link
-              href={{
-                pathname: "/projects/members/new",
-                params: { projectId: (project as any)?.id || id || "" },
-              }}
-              asChild
-            >
-              <TouchableOpacity className="rounded-xl bg-emerald-600 px-3 py-2">
-                <Text className="text-white text-xs font-semibold">
-                  + New Member
-                </Text>
-              </TouchableOpacity>
-            </Link>
+  return (
+    <Screen showNav padded={false}>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        stickyHeaderIndices={[1]}
+        contentContainerStyle={{ paddingTop: 8, paddingBottom: 24 }}
+      >
+        <View className="mb-3 px-4 pt-4 flex-row items-start justify-between">
+          <View className="flex-1 pr-3">
+            <Text className="text-xs text-emerald-400 uppercase">Project</Text>
+            <Text className="text-xl font-bold text-white">
+              {project?.name || "Project"}
+            </Text>
+            <Text className="text-slate-400 text-xs mt-1">
+              {project?.location || ""} → ID: {id}
+            </Text>
           </View>
-          <Text className="text-slate-400 text-xs mb-2">
-            {membersError
-              ? membersError
-              : !members.length
-              ? "No members yet. Add one to tag readings and calibration points."
-              : ""}
-          </Text>
-          {membersLoading ? (
-            <ActivityIndicator color="#34d399" />
-          ) : (
-            <ScrollView
-              showsVerticalScrollIndicator={false}
-              contentContainerStyle={{ gap: 9, paddingBottom: 150 }}
-            >
-              {members.map((m) => (
-                <View key={m.id} className="rounded-xl bg-slate-800 p-4">
-                  <Text className="text-white font-semibold">{m.member_id}</Text>
-                  <Text className="text-slate-400 text-xs mt-1">
-                    {m.type}
-                    {m.level ? ` • ${m.level}` : ""}
-                    {m.gridline ? ` • Grid ${m.gridline}` : ""}
-                  </Text>
-                  {m.notes ? (
-                    <Text className="text-slate-500 text-xs mt-1">{m.notes}</Text>
-                  ) : null}
-                  <TouchableOpacity
-                    onPress={async () => {
-                      await deleteMember((project as any)?.id || (id as string), m.id, token || undefined);
-                      loadMembers((project as any)?.id || (id as string));
-                    }}
-                    className="mt-2"
-                  >
-                    <Text className="text-rose-300 text-xs">Delete</Text>
-                  </TouchableOpacity>
-                </View>
-              ))}
-            </ScrollView>
-          )}
+          <Link
+            href={
+              {
+                pathname: "/projects/edit",
+                params: { id: (project as any)?.id || (id as string) },
+              } as unknown as Href
+            }
+            asChild
+          >
+            <TouchableOpacity className="rounded-xl border border-emerald-500/60 px-3 py-2">
+              <Text className="text-emerald-200 text-xs font-semibold">Edit</Text>
+            </TouchableOpacity>
+          </Link>
         </View>
-      ) : (
-        <ScrollView
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={{
-            paddingHorizontal: 16,
-            paddingBottom: 24,
-            paddingTop: 0,
-            gap: 12,
-          }}
-        >
-          {activeTab === "Overview" && (
-            <View style={{ gap: 12 }}>
-              <View className="rounded-xl bg-slate-800 p-4">
-                <Text className="text-slate-300 text-sm mb-1">Design fc'</Text>
-                <Text className="text-white text-xl font-semibold">
-                  {project?.design_fc ? `${project.design_fc} MPa` : "--"}
-                </Text>
-              </View>
-              <View className="rounded-xl bg-slate-800 p-4">
-                <Text className="text-slate-300 text-sm mb-1">
-                  Active Model
-                </Text>
-                <Text className="text-white text-base font-semibold">
-                  {project?.status === "calibrated" ? "Calibrated" : "No model yet"}
-                </Text>
-                <Text className="text-slate-400 text-xs mt-2">
-                  Add calibration points and generate a model to activate project-specific SonReb coefficients.
-                </Text>
-              </View>
-            </View>
-          )}
 
-          {activeTab === "Calibration" && (
-            <View style={{ gap: 12 }}>
-              <Link href="/calibration" asChild>
-                <TouchableOpacity className="rounded-xl bg-slate-800 p-4 active:bg-slate-700">
-                  <Text className="text-white font-semibold mb-1">
-                    Calibration Points
-                  </Text>
-                  <Text className="text-slate-400 text-xs">
-                    View all core strengths and regression status.
+        {Tabs}
+
+        {error ? (
+          <View className="bg-rose-500/10 border border-rose-500/40 rounded-lg p-3 mb-3 mx-4">
+            <Text className="text-rose-100 text-xs">{error}</Text>
+          </View>
+        ) : null}
+
+        {loading ? (
+          <View className="items-center justify-center py-8">
+            <ActivityIndicator color="#34d399" />
+          </View>
+        ) : activeTab === "Members" ? (
+          <View className="px-4 pb-4 mt-3">
+            <View className="flex-row justify-between items-center mb-2">
+              <Text className="text-slate-200 font-semibold">Members</Text>
+              <Link
+                href={{
+                  pathname: "/projects/members/new",
+                  params: { projectId: (project as any)?.id || id || "" },
+                }}
+                asChild
+              >
+                <TouchableOpacity className="rounded-xl bg-emerald-600 px-3 py-2">
+                  <Text className="text-white text-xs font-semibold">
+                    + New Member
                   </Text>
                 </TouchableOpacity>
               </Link>
             </View>
-          )}
-        </ScrollView>
-      )}
+            <Text className="text-slate-400 text-xs mb-2">
+              {membersError
+                ? membersError
+                : !members.length
+                ? "No members yet. Add one to tag readings and calibration points."
+                : ""}
+            </Text>
+            {membersLoading ? (
+              <ActivityIndicator color="#34d399" />
+            ) : (
+              <View style={{ gap: 9, paddingBottom: 150 }}>
+                {members.map((m) => (
+                  <View key={m.id} className="rounded-xl bg-slate-800 p-4">
+                    <Text className="text-white font-semibold">{m.member_id}</Text>
+                    <Text className="text-slate-400 text-xs mt-1">
+                      {m.type}
+                      {m.level ? ` → ${m.level}` : ""}
+                      {m.gridline ? ` → Grid ${m.gridline}` : ""}
+                    </Text>
+                    {m.notes ? (
+                      <Text className="text-slate-500 text-xs mt-1">{m.notes}</Text>
+                    ) : null}
+                    <View className="flex-row gap-4 mt-2">
+                      <Link
+                        href={
+                          {
+                            pathname: "/projects/members/edit",
+                            params: {
+                              projectId: (project as any)?.id || (id as string),
+                              memberId: m.id,
+                              member_id: m.member_id,
+                              type: m.type,
+                              level: m.level || "",
+                              gridline: m.gridline || "",
+                              notes: m.notes || "",
+                            },
+                          } as unknown as Href
+                        }
+                        asChild
+                      >
+                        <TouchableOpacity>
+                          <Text className="text-emerald-300 text-xs">Edit</Text>
+                        </TouchableOpacity>
+                      </Link>
+                      <TouchableOpacity
+                        onPress={async () => {
+                          await deleteMember((project as any)?.id || (id as string), m.id, token || undefined);
+                          loadMembers((project as any)?.id || (id as string));
+                        }}
+                      >
+                        <Text className="text-rose-300 text-xs">Delete</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                ))}
+              </View>
+            )}
+          </View>
+        ) : (
+          <View
+            style={{
+              paddingHorizontal: 16,
+              paddingBottom: 24,
+              paddingTop: 8,
+              gap: 12,
+            }}
+          >
+            {activeTab === "Overview" && (
+              <View style={{ gap: 12 }}>
+                <View className="rounded-xl bg-slate-800 p-4">
+                  <Text className="text-slate-300 text-sm mb-1">Design fc'</Text>
+                  <Text className="text-white text-xl font-semibold">
+                    {project?.design_fc ? `${project.design_fc} MPa` : "--"}
+                  </Text>
+                </View>
+                <View className="rounded-xl bg-slate-800 p-4">
+                  <Text className="text-slate-300 text-sm mb-1">
+                    Active Model
+                  </Text>
+                  <Text className="text-white text-base font-semibold">
+                    {project?.status === "calibrated" ? "Calibrated" : "No model yet"}
+                  </Text>
+                  <Text className="text-slate-400 text-xs mt-2">
+                    Add calibration points and generate a model to activate project-specific SonReb coefficients.
+                  </Text>
+                </View>
+              </View>
+            )}
+
+            {activeTab === "Calibration" && (
+              <View style={{ gap: 12 }}>
+                <Link href="/calibration" asChild>
+                  <TouchableOpacity className="rounded-xl bg-slate-800 p-4 active:bg-slate-700">
+                    <Text className="text-white font-semibold mb-1">
+                      Calibration Points
+                    </Text>
+                    <Text className="text-slate-400 text-xs">
+                      View all core strengths and regression status.
+                    </Text>
+                  </TouchableOpacity>
+                </Link>
+              </View>
+            )}
+          </View>
+        )}
+      </ScrollView>
     </Screen>
   );
 }
