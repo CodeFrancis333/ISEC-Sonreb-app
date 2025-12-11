@@ -68,7 +68,11 @@ export default function ProjectsListScreen() {
           <ActivityIndicator color="#34d399" />
         </View>
       ) : (
-        <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
+        <ScrollView
+          className="flex-1"
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={{ paddingBottom: 150 }}
+        >
           <View className="gap-3">
             {projects.map((project) => (
               <View key={project.id} className="rounded-xl bg-slate-800 p-4">

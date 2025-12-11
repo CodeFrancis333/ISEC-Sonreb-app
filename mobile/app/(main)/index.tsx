@@ -52,7 +52,11 @@ export default function MainHomeScreen() {
 
   return (
     <Screen showNav>
-      <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
+      <ScrollView
+        className="flex-1"
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingBottom: 150, gap: 0 }}
+      >
         <View className="flex-row items-center justify-between mb-2">
           <View>
             <Text className="text-sm text-emerald-400">SONREB Dashboard</Text>

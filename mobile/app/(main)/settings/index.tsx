@@ -12,7 +12,11 @@ export default function SettingsScreen() {
 
   return (
     <Screen showNav>
-      <ScrollView className="flex-1">
+      <ScrollView
+        className="flex-1"
+        contentContainerStyle={{ paddingBottom: 150 }}
+        showsVerticalScrollIndicator={false}
+      >
 
         {/* Header */}
         <Text className="text-xs text-emerald-400 uppercase">

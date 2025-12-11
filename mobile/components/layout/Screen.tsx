@@ -18,10 +18,7 @@ export default function Screen({
 }: ScreenProps) {
   return (
     <SafeAreaView className="flex-1 bg-slate-900" {...rest}>
-      <View
-        className={`${padded ? "flex-1 px-5 pt-4 pb-2" : "flex-1"} ${showNav ? "pb-16" : ""}`}
-        style={style}
-      >
+      <View className={`${padded ? "flex-1 px-5 pt-4 pb-2" : "flex-1"}`} style={style}>
         {children}
       </View>
       {showNav && <BottomNav />}

@@ -77,7 +77,11 @@ export default function AddCalibrationPointScreen() {
 
   return (
     <Screen>
-      <ScrollView className="flex-1">
+      <ScrollView
+        className="flex-1"
+        contentContainerStyle={{ paddingBottom: 150 }}
+        showsVerticalScrollIndicator={false}
+      >
         <Text className="text-xl font-bold text-white mb-1">
           Add Calibration Point
         </Text>

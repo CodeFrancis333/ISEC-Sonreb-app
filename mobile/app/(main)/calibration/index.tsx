@@ -156,7 +156,11 @@ export default function CalibrationPointsListScreen() {
           <ActivityIndicator color="#34d399" />
         </View>
       ) : (
-        <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
+        <ScrollView
+          className="flex-1"
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={{ paddingBottom: 150 }}
+        >
           <View className="gap-3">
             {points.map((p) => (
               <View key={p.id} className="rounded-xl bg-slate-800 p-4">
@@ -189,34 +193,33 @@ export default function CalibrationPointsListScreen() {
               </Text>
             )}
           </View>
+          <View className="mt-2">
+            <Link
+              href={{
+                pathname: "/calibration/generate",
+                params: { projectId: selectedProject || "" },
+              }}
+              asChild
+            >
+              <TouchableOpacity
+                disabled={!selectedProject}
+                className={`rounded-xl py-3 items-center ${
+                  selectedProject ? "bg-emerald-600" : "bg-slate-700"
+                }`}
+                onPress={() => {
+                  if (!selectedProject) {
+                    Alert.alert("Select a project first");
+                  }
+                }}
+              >
+                <Text className="text-white font-semibold text-sm">
+                  Generate Model
+                </Text>
+              </TouchableOpacity>
+            </Link>
+          </View>
         </ScrollView>
       )}
-
-      <View className="mt-4">
-        <Link
-          href={{
-            pathname: "/calibration/generate",
-            params: { projectId: selectedProject || "" },
-          }}
-          asChild
-        >
-          <TouchableOpacity
-            disabled={!selectedProject}
-            className={`rounded-xl py-3 items-center ${
-              selectedProject ? "bg-emerald-600" : "bg-slate-700"
-            }`}
-            onPress={() => {
-              if (!selectedProject) {
-                Alert.alert("Select a project first");
-              }
-            }}
-          >
-            <Text className="text-white font-semibold text-sm">
-              Generate Model
-            </Text>
-          </TouchableOpacity>
-        </Link>
-      </View>
     </Screen>
   );
 }

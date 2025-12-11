@@ -43,7 +43,11 @@ export default function NewProjectScreen() {
 
   return (
     <Screen>
-      <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
+      <ScrollView
+        className="flex-1"
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingBottom: 150 }}
+      >
         <Text className="text-xl font-bold text-white mb-1">
           New Project
         </Text>

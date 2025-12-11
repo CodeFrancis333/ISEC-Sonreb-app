@@ -146,7 +146,7 @@ export default function ProjectOverviewScreen() {
           ) : (
             <ScrollView
               showsVerticalScrollIndicator={false}
-              contentContainerStyle={{ gap: 8, paddingBottom: 16 }}
+              contentContainerStyle={{ gap: 9, paddingBottom: 150 }}
             >
               {members.map((m) => (
                 <View key={m.id} className="rounded-xl bg-slate-800 p-4">
