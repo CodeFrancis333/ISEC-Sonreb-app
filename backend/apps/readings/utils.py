@@ -62,7 +62,8 @@ def compute_estimated_fc(
     if upv <= 0 or rh_index <= 0:
         raise ValueError("UPV and RH must be positive to apply the SonReb model.")
 
-    estimated = a * (rh_index ** b) * (upv ** c)
+    # fc = a * UPV^b * RH^c (* carb^d if applicable)
+    estimated = a * (upv ** b) * (rh_index ** c)
     if model.use_carbonation and carbonation_depth is not None and carbonation_depth > 0 and d is not None:
         estimated *= carbonation_depth ** d
 

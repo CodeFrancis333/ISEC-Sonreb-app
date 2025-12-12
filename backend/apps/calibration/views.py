@@ -268,16 +268,12 @@ class CalibrationDiagnosticsView(APIView):
         points = CalibrationPoint.objects.filter(project=project).order_by("-created_at")
         data_points = []
         for p in points:
-            # predicted using active model
-            if model.use_carbonation and p.carbonation_depth is not None:
-                predicted = (
-                    model.a0
-                    + model.a1 * p.rh_index
-                    + model.a2 * p.upv
-                    + (model.a3 or 0.0) * p.carbonation_depth
-                )
-            else:
-                predicted = model.a0 + model.a1 * p.rh_index + model.a2 * p.upv
+            # predicted using power-law model: fc = a * UPV^b * RH^c (* carb^d)
+            predicted = None
+            if p.upv > 0 and p.rh_index > 0:
+                predicted = model.a0 * (p.upv ** model.a1) * (p.rh_index ** model.a2)
+                if model.use_carbonation and p.carbonation_depth and model.a3:
+                    predicted *= p.carbonation_depth ** model.a3
 
             data_points.append(
                 {
