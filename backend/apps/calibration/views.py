@@ -98,34 +98,46 @@ class GenerateModelView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        # Build regression data
+        # Build regression data in log-space for power-law:
+        # ln(fc) = A + b*ln(V) + c*ln(S) [+ d*ln(carbonation)]
         X_rows: List[List[float]] = []
         y_rows: List[float] = []
 
         for p in points:
-            row = [1.0, p.rh_index, p.upv]
-            if use_carbonation:
-                row.append(p.carbonation_depth or 0.0)
+            if p.upv <= 0 or p.rh_index <= 0:
+                # skip invalid values for log-space
+                continue
+            row = [1.0, np.log(p.upv), np.log(p.rh_index)]
+            if use_carbonation and p.carbonation_depth not in [None, 0]:
+                row.append(np.log(p.carbonation_depth))
+            elif use_carbonation:
+                # if carbonation required but missing, skip
+                continue
             X_rows.append(row)
-            y_rows.append(p.core_fc)
+            y_rows.append(np.log(p.core_fc))
 
         X = np.array(X_rows, dtype=float)
         y = np.array(y_rows, dtype=float)
 
-        # Solve least squares
+        if len(y) < min_points:
+            return Response(
+                {"detail": f"Not enough calibration points with valid data. Need at least {min_points} points."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
         beta, residuals, rank, s = np.linalg.lstsq(X, y, rcond=None)
 
-        # Predicted values
         y_pred = X.dot(beta)
         ss_res = float(np.sum((y - y_pred) ** 2))
         ss_tot = float(np.sum((y - y.mean()) ** 2)) if len(y) > 1 else 0.0
         r2 = 1.0 - ss_res / ss_tot if ss_tot > 0 else 1.0
         rmse = float(np.sqrt(np.mean((y - y_pred) ** 2))) if len(y) > 0 else 0.0
 
-        a0 = float(beta[0])
-        a1 = float(beta[1])
-        a2 = float(beta[2])
-        a3 = float(beta[3]) if use_carbonation and len(beta) > 3 else None
+        # Back-transform coefficients: a = exp(A), b = beta[1], c = beta[2], optional d
+        a = float(np.exp(beta[0]))
+        b = float(beta[1])
+        c = float(beta[2])
+        d = float(beta[3]) if use_carbonation and len(beta) > 3 else None
 
         upv_values = [p.upv for p in points]
         rh_values = [p.rh_index for p in points]
@@ -136,11 +148,11 @@ class GenerateModelView(APIView):
         ]
 
         model_data = {
-            "project": project.id,
-            "a0": a0,
-            "a1": a1,
-            "a2": a2,
-            "a3": a3,
+            # store power-law coefficients in existing fields
+            "a0": a,   # pre-exponential
+            "a1": b,   # exponent for RH
+            "a2": c,   # exponent for UPV
+            "a3": d,   # exponent for carbonation (optional)
             "r2": r2,
             "rmse": rmse,
             "points_used": points.count(),
@@ -197,6 +209,33 @@ class ActiveModelView(APIView):
 
         serializer = CalibrationModelSerializer(model)
         return Response(serializer.data)
+
+    def post(self, request):
+        project_id = request.data.get("project")
+        if not project_id:
+            return Response(
+                {"detail": "Project is required."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            project = Project.objects.get(id=project_id, owner=request.user)
+        except Project.DoesNotExist:
+            return Response(
+                {"detail": "Project not found."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        try:
+            model = project.calibration_model
+        except CalibrationModel.DoesNotExist:
+            return Response(
+                {"detail": "No calibration model found to activate."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        serializer = CalibrationModelSerializer(model)
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
 
 class CalibrationDiagnosticsView(APIView):

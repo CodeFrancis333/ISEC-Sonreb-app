@@ -4,18 +4,17 @@ import Screen from "../../../components/layout/Screen";
 import Input from "../../../components/ui/Input";
 import Button from "../../../components/ui/Button";
 import { useAuthStore } from "../../../store/authStore";
-import { listProjects, listMembers, Project, Member } from "../../../services/projectService";
+import { listProjects, Project } from "../../../services/projectService";
 import { createReading } from "../../../services/readingService";
 import { useRouter } from "expo-router";
 
 export default function NewReadingScreen() {
-  const router = useRouter();
-  const { token } = useAuthStore();
+    const router = useRouter();
+    const { token } = useAuthStore();
 
   const [projects, setProjects] = useState<Project[]>([]);
-  const [members, setMembers] = useState<Member[]>([]);
   const [projectId, setProjectId] = useState<string | null>(null);
-  const [memberId, setMemberId] = useState<string | null>(null);
+  const [memberLabel, setMemberLabel] = useState("");
   const [locationTag, setLocationTag] = useState("");
   const [upv, setUpv] = useState("");
   const [rh, setRh] = useState("");
@@ -30,24 +29,12 @@ export default function NewReadingScreen() {
         setProjects(data);
         const first = data[0]?.id || null;
         setProjectId(first);
-        if (first) {
-          await loadMembers(first);
-        }
       } catch (err: any) {
         setError(err.message || "Unable to load projects.");
       }
     }
     loadProjects();
   }, [token]);
-
-  async function loadMembers(pid: string) {
-    try {
-      const data = await listMembers(pid, token || undefined);
-      setMembers(data);
-    } catch {
-      setMembers([]);
-    }
-  }
 
   const handleSave = async () => {
     if (!projectId) {
@@ -62,8 +49,7 @@ export default function NewReadingScreen() {
       setLoading(true);
       const payload: any = {
         project: projectId,
-        member: memberId || null,
-        location_tag: locationTag,
+        location_tag: locationTag || memberLabel || "New reading",
         upv: parseFloat(upv),
         rh_index: parseFloat(rh),
       };
@@ -79,7 +65,7 @@ export default function NewReadingScreen() {
   };
 
   return (
-    <Screen>
+    <Screen showNav>
       <ScrollView
         className="flex-1"
         showsVerticalScrollIndicator={false}
@@ -100,8 +86,7 @@ export default function NewReadingScreen() {
                 key={p.id}
                 onPress={() => {
                   setProjectId(p.id);
-                  setMemberId(null);
-                  loadMembers(p.id);
+                  setMemberLabel("");
                 }}
                 className={`px-3 py-2 rounded-full border ${
                   projectId === p.id ? "border-emerald-500 bg-emerald-500/10" : "border-slate-600"
@@ -115,27 +100,12 @@ export default function NewReadingScreen() {
           </View>
         </ScrollView>
 
-        <Text className="text-slate-200 text-sm mb-2">Member (optional)</Text>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} className="mb-3">
-          <View className="flex-row gap-2">
-            {members.map((m) => (
-              <TouchableOpacity
-                key={m.id}
-                onPress={() => setMemberId(m.id)}
-                className={`px-3 py-2 rounded-full border ${
-                  memberId === m.id ? "border-emerald-500 bg-emerald-500/10" : "border-slate-600"
-                }`}
-              >
-                <Text className={memberId === m.id ? "text-white text-xs" : "text-slate-200 text-xs"}>
-                  {m.member_id}
-                </Text>
-              </TouchableOpacity>
-            ))}
-            {!members.length && (
-              <Text className="text-slate-400 text-xs">No members; leave blank.</Text>
-            )}
-          </View>
-        </ScrollView>
+        <Input
+          label="Member (free-text)"
+          value={memberLabel}
+          onChangeText={setMemberLabel}
+          placeholder="e.g. C1, Slab 3, Beam-B2"
+        />
 
         <Input
           label="Location Tag"

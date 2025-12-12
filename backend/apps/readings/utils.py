@@ -22,46 +22,49 @@ def compute_estimated_fc(
         estimated = 0.005 * upv + 0.25 * rh_index
         return estimated, "Default SonReb Model"
 
-        a0 = model.a0
-        a1 = model.a1
-        a2 = model.a2
-        a3 = model.a3 if model.use_carbonation else 0.0
+    # Model is power-law: fc = a * RH^b * UPV^c (* carbonation^d if applicable)
+    a = model.a0
+    b = model.a1
+    c = model.a2
+    d = model.a3 if model.use_carbonation else None
 
-        # Validity checks based on calibrated ranges
-        out_of_range_fields = []
-        if model.upv_min is not None and upv < model.upv_min:
-            out_of_range_fields.append("UPV")
-        if model.upv_max is not None and upv > model.upv_max:
-            out_of_range_fields.append("UPV")
-        if model.rh_min is not None and rh_index < model.rh_min:
-            out_of_range_fields.append("RH index")
-        if model.rh_max is not None and rh_index > model.rh_max:
-            out_of_range_fields.append("RH index")
-        if model.use_carbonation:
-            if (
-                model.carbonation_min is not None
-                and carbonation_depth is not None
-                and carbonation_depth < model.carbonation_min
-            ):
-                out_of_range_fields.append("carbonation depth")
-            if (
-                model.carbonation_max is not None
-                and carbonation_depth is not None
-                and carbonation_depth > model.carbonation_max
-            ):
-                out_of_range_fields.append("carbonation depth")
+    # Validity checks based on calibrated ranges
+    out_of_range_fields = []
+    if model.upv_min is not None and upv < model.upv_min:
+        out_of_range_fields.append("UPV")
+    if model.upv_max is not None and upv > model.upv_max:
+        out_of_range_fields.append("UPV")
+    if model.rh_min is not None and rh_index < model.rh_min:
+        out_of_range_fields.append("RH index")
+    if model.rh_max is not None and rh_index > model.rh_max:
+        out_of_range_fields.append("RH index")
+    if model.use_carbonation:
+        if (
+            model.carbonation_min is not None
+            and carbonation_depth is not None
+            and carbonation_depth < model.carbonation_min
+        ):
+            out_of_range_fields.append("carbonation depth")
+        if (
+            model.carbonation_max is not None
+            and carbonation_depth is not None
+            and carbonation_depth > model.carbonation_max
+        ):
+            out_of_range_fields.append("carbonation depth")
 
-        if out_of_range_fields:
-            # ACI-aligned guard: do not use the model outside its calibrated range
-            raise ValueError(
-                "Input values are outside the calibrated range for this project "
-                f"({', '.join(sorted(set(out_of_range_fields)))})."
-            )
+    if out_of_range_fields:
+        # ACI-aligned guard: do not use the model outside its calibrated range
+        raise ValueError(
+            "Input values are outside the calibrated range for this project "
+            f"({', '.join(sorted(set(out_of_range_fields)))})."
+        )
 
-        if model.use_carbonation and carbonation_depth is not None:
-            estimated = a0 + a1 * rh_index + a2 * upv + a3 * carbonation_depth
-        else:
-            estimated = a0 + a1 * rh_index + a2 * upv
+    if upv <= 0 or rh_index <= 0:
+        raise ValueError("UPV and RH must be positive to apply the SonReb model.")
+
+    estimated = a * (rh_index ** b) * (upv ** c)
+    if model.use_carbonation and carbonation_depth is not None and carbonation_depth > 0 and d is not None:
+        estimated *= carbonation_depth ** d
 
     return estimated, "Project Calibrated Model"
 

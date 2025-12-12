@@ -1,78 +1,81 @@
-import React from "react";
-import { Text, ScrollView } from "react-native";
-import { useLocalSearchParams } from "expo-router";
+import React, { useEffect, useState } from "react";
+import { Text, ScrollView, View, ActivityIndicator } from "react-native";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import Screen from "../../../components/layout/Screen";
+import { getReading, Reading } from "../../../services/readingService";
+import { useAuthStore } from "../../../store/authStore";
 
 export default function ReadingDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
+  const router = useRouter();
+  const { token } = useAuthStore();
+  const [reading, setReading] = useState<Reading | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // Dummy details
-  const reading = {
-    project: "Hospital Wing A",
-    member: "C1",
-    locationTag: "North Face, mid-height",
-    upv: 4200,
-    rh: 32,
-    carbonation: 15,
-    fc: 26.4,
-    rating: "GOOD",
-    recommendation: "Concrete strength is adequate for design fc′.",
-    modelUsed: "Project Calibrated Model",
-    timestamp: "2025-12-06 14:32",
-  };
+  useEffect(() => {
+    async function load() {
+      if (!id) return;
+      try {
+        setLoading(true);
+        const data = await getReading(id, token || undefined);
+        setReading(data);
+      } catch (err: any) {
+        setError(err?.message || "Unable to load reading.");
+      } finally {
+        setLoading(false);
+      }
+    }
+    load();
+  }, [id, token]);
+
+  const memberLabel = (reading as any)?.member_name || (reading as any)?.member || "N/A";
 
   return (
-    <Screen>
-      <ScrollView className="flex-1">
-        <Text className="text-xs text-emerald-400 uppercase">
-          Reading Detail
-        </Text>
+    <Screen showNav>
+      <ScrollView className="flex-1" contentContainerStyle={{ paddingBottom: 48 }}>
+        <Text className="text-xs text-emerald-400 uppercase">Reading Detail</Text>
         <Text className="text-xl font-bold text-white mb-1">
-          {reading.project} – {reading.member}
+          {reading?.project || "Reading"} • {memberLabel}
         </Text>
-        <Text className="text-slate-400 text-xs mb-4">
-          Reading ID: {id} • {reading.timestamp}
-        </Text>
+        <Text className="text-slate-400 text-xs mb-4">Reading ID: {id}</Text>
 
-        <Text className="text-slate-300 text-sm mb-1">
-          Estimated fc′
-        </Text>
-        <Text className="text-white text-2xl font-semibold mb-2">
-          {reading.fc.toFixed(1)} MPa
-        </Text>
-        <Text className="text-emerald-300 text-xs font-semibold mb-4">
-          Rating: {reading.rating}
-        </Text>
+        {loading ? (
+          <View className="items-center justify-center py-8">
+            <ActivityIndicator color="#34d399" />
+          </View>
+        ) : error ? (
+          <Text className="text-rose-300 text-sm">{error}</Text>
+        ) : reading ? (
+          <>
+            <View className="rounded-xl bg-slate-800 p-4 mb-3">
+              <Text className="text-slate-300 text-sm mb-1">Estimated fc'</Text>
+              <Text className="text-white text-2xl font-semibold mb-1">
+                {reading.estimated_fc.toFixed(2)} MPa
+              </Text>
+              <Text className="text-slate-400 text-xs">
+                Rating: {reading.rating} • Model: {reading.model_used}
+              </Text>
+            </View>
 
-        <Text className="text-slate-300 text-sm mb-2">
-          Measurement Inputs
-        </Text>
-        <Text className="text-slate-200 text-xs">
-          UPV: {reading.upv} m/s
-        </Text>
-        <Text className="text-slate-200 text-xs">
-          RH Index: {reading.rh}
-        </Text>
-        <Text className="text-slate-200 text-xs">
-          Carbonation depth: {reading.carbonation} mm
-        </Text>
-        <Text className="text-slate-400 text-xs mt-2 mb-4">
-          Location: {reading.locationTag}
-        </Text>
-
-        <Text className="text-slate-300 text-sm mb-1">
-          Model Used
-        </Text>
-        <Text className="text-slate-200 text-xs mb-4">
-          {reading.modelUsed}
-        </Text>
-
-        <Text className="text-slate-300 text-sm mb-1">
-          Recommendation
-        </Text>
-        <Text className="text-slate-200 text-xs">
-          {reading.recommendation}
-        </Text>
+            <View className="rounded-xl bg-slate-800 p-4 mb-3">
+              <Text className="text-slate-300 text-sm mb-2">Inputs</Text>
+              <Text className="text-slate-400 text-xs">
+                UPV: {reading.upv} m/s • RH: {reading.rh_index}
+              </Text>
+              {reading.carbonation_depth !== null && reading.carbonation_depth !== undefined ? (
+                <Text className="text-slate-400 text-xs mt-1">
+                  Carbonation: {reading.carbonation_depth} mm
+                </Text>
+              ) : null}
+              {reading.location_tag ? (
+                <Text className="text-slate-500 text-xs mt-2">Location: {reading.location_tag}</Text>
+              ) : null}
+            </View>
+          </>
+        ) : (
+          <Text className="text-slate-400 text-sm">No data.</Text>
+        )}
       </ScrollView>
     </Screen>
   );

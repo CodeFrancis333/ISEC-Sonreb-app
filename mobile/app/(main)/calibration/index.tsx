@@ -4,7 +4,7 @@ import { Link, useRouter, useFocusEffect } from "expo-router";
 import Screen from "../../../components/layout/Screen";
 import { useAuthStore } from "../../../store/authStore";
 import { listProjects, Project, listMembers, Member } from "../../../services/projectService";
-import { listCalibrationPoints, CalibrationPoint, deleteCalibrationPoint } from "../../../services/calibrationService";
+import { listCalibrationPoints, CalibrationPoint, deleteCalibrationPoint, getActiveModel, CalibrationModel } from "../../../services/calibrationService";
 import Select from "../../../components/ui/Select";
 
 export default function CalibrationPointsListScreen() {
@@ -15,6 +15,7 @@ export default function CalibrationPointsListScreen() {
   const [showProjectList, setShowProjectList] = useState(false);
   const [points, setPoints] = useState<CalibrationPoint[]>([]);
   const [members, setMembers] = useState<Member[]>([]);
+  const [activeModel, setActiveModel] = useState<CalibrationModel | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -27,6 +28,7 @@ export default function CalibrationPointsListScreen() {
       if (firstId) {
         await fetchMembers(firstId);
         await fetchPoints(firstId);
+        await fetchModel(firstId);
       }
     } catch (err: any) {
       setError(err.message || "Unable to load projects.");
@@ -42,6 +44,7 @@ export default function CalibrationPointsListScreen() {
       if (selectedProject) {
         fetchMembers(selectedProject);
         fetchPoints(selectedProject);
+        fetchModel(selectedProject);
       }
     }, [selectedProject])
   );
@@ -74,6 +77,15 @@ export default function CalibrationPointsListScreen() {
         router.replace("/(auth)/login");
         return;
       }
+    }
+  }
+
+  async function fetchModel(projectId: string) {
+    try {
+      const model = await getActiveModel(projectId, token || undefined);
+      setActiveModel(model);
+    } catch {
+      setActiveModel(null);
     }
   }
 
@@ -173,6 +185,37 @@ export default function CalibrationPointsListScreen() {
         </Text>
       </View>
 
+      {activeModel ? (
+        <View className="rounded-xl bg-emerald-500/10 border border-emerald-500/30 p-3 mb-3">
+          <Text className="text-emerald-200 text-xs mb-1">Active Model</Text>
+          <Text className="text-white text-sm font-semibold">
+            r² {activeModel.r2.toFixed(2)} • RMSE {activeModel.rmse?.toFixed(2) ?? "--"} MPa
+          </Text>
+          <Text className="text-slate-300 text-xs mt-1">
+            Points used: {activeModel.points_used} • Carbonation: {activeModel.use_carbonation ? "Yes" : "No"}
+          </Text>
+          <Text className="text-slate-400 text-[11px] mt-1">
+            UPV {activeModel.upv_min ?? "--"}–{activeModel.upv_max ?? "--"} m/s • RH {activeModel.rh_min ?? "--"}–{activeModel.rh_max ?? "--"}
+          </Text>
+        </View>
+      ) : null}
+      {activeModel && selectedProject ? (
+        <TouchableOpacity
+          className="rounded-xl bg-slate-800 px-4 py-3 mb-3"
+          onPress={() =>
+            router.push({
+              pathname: "/calibration/diagnostics",
+              params: { projectId: selectedProject },
+            })
+          }
+        >
+          <Text className="text-white font-semibold">View Diagnostics</Text>
+          <Text className="text-slate-400 text-xs mt-1">
+            See predicted vs measured, residuals, and model details.
+          </Text>
+        </TouchableOpacity>
+      ) : null}
+
       {error ? (
         <View className="bg-rose-500/10 border border-rose-500/40 rounded-lg p-3 mb-3">
           <Text className="text-rose-100 text-xs">{error}</Text>
@@ -265,27 +308,24 @@ export default function CalibrationPointsListScreen() {
             )}
           </View>
           <View className="mt-2">
-            <Link
-              href={{
-                pathname: "/calibration/generate",
-                params: { projectId: selectedProject || "" },
+            <TouchableOpacity
+              disabled={!selectedProject}
+              className={`rounded-xl py-3 items-center ${
+                selectedProject ? "bg-emerald-600" : "bg-slate-700"
+              }`}
+              onPress={() => {
+                if (!selectedProject) {
+                  Alert.alert("Select a project first");
+                  return;
+                }
+                router.push({
+                  pathname: "/calibration/generate",
+                  params: { projectId: selectedProject },
+                });
               }}
-              asChild
             >
-              <TouchableOpacity
-                disabled={!selectedProject}
-                className={`rounded-xl py-3 items-center ${
-                  selectedProject ? "bg-emerald-600" : "bg-slate-700"
-                }`}
-                onPress={() => {
-                  if (!selectedProject) {
-                    Alert.alert("Select a project first");
-                  }
-                }}
-              >
-                <Text className="text-white font-semibold text-sm">Generate Model</Text>
-              </TouchableOpacity>
-            </Link>
+              <Text className="text-white font-semibold text-sm">Generate Model</Text>
+            </TouchableOpacity>
           </View>
         </ScrollView>
       )}

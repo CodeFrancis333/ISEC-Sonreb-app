@@ -1,12 +1,18 @@
 import React, { useState } from "react";
-import { View, Text, ScrollView, Switch } from "react-native";
-import { useRouter } from "expo-router";
+import { View, Text, ScrollView, Switch, Alert } from "react-native";
+import { useRouter, useLocalSearchParams } from "expo-router";
 import Screen from "../../../components/layout/Screen";
 import Button from "../../../components/ui/Button";
+import { generateCalibrationModel, setActiveCalibrationModel } from "../../../services/calibrationService";
+import { useAuthStore } from "../../../store/authStore";
 
 export default function GenerateModelScreen() {
   const router = useRouter();
+  const params = useLocalSearchParams<{ projectId?: string }>();
+  const projectId = params.projectId as string | undefined;
+  const { token } = useAuthStore();
   const [useCarbonation, setUseCarbonation] = useState(true);
+  const [loading, setLoading] = useState(false);
 
   // Dummy numbers for now
   const pointsAvailable = 8;
@@ -14,12 +20,40 @@ export default function GenerateModelScreen() {
   const carbonationModelReady = pointsAvailable >= 8;
 
   const handleGenerate = () => {
-    // TODO: call backend to run regression
+    if (!projectId) {
+      Alert.alert("Missing project", "Open this from a project to generate a model.");
+      return;
+    }
+    setLoading(true);
+    generateCalibrationModel(
+      { project: projectId, use_carbonation: useCarbonation },
+      token || undefined
+    )
+      .then(() => {
+        Alert.alert("Model generated", "Calibration model generated successfully.");
+      })
+      .catch((err: any) => {
+        Alert.alert("Generation failed", err?.message || "Unable to generate model.");
+      })
+      .finally(() => setLoading(false));
   };
 
   const handleSetActive = () => {
-    // TODO: set active model for project
-    router.back();
+    if (!projectId) {
+      Alert.alert("Missing project", "Open this from a project to set the active model.");
+      return;
+    }
+    setLoading(true);
+    setActiveCalibrationModel(projectId, token || undefined)
+      .then(() => {
+        Alert.alert("Model activated", "Active model set for this project.", [
+          { text: "OK", onPress: () => router.back() },
+        ]);
+      })
+      .catch((err: any) => {
+        Alert.alert("Activation failed", err?.message || "Unable to set active model.");
+      })
+      .finally(() => setLoading(false));
   };
 
   return (
@@ -91,7 +125,7 @@ export default function GenerateModelScreen() {
           </Text>
         </View>
 
-        <Button title="Generate Model" onPress={handleGenerate} />
+        <Button title={loading ? "Generating..." : "Generate Model"} onPress={handleGenerate} disabled={loading} />
 
         <View className="h-3" />
 

@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, ScrollView, ActivityIndicator, Alert } fr
 import { useLocalSearchParams, Link, useRouter, useFocusEffect, Href } from "expo-router";
 import Screen from "../../../components/layout/Screen";
 import { getProject, Project, listMembers, Member, deleteMember } from "../../../services/projectService";
+import { getActiveModel, CalibrationModel } from "../../../services/calibrationService";
 import { useAuthStore } from "../../../store/authStore";
 
 const TABS = ["Overview", "Members", "Calibration"];
@@ -18,6 +19,7 @@ export default function ProjectOverviewScreen() {
   const [members, setMembers] = useState<Member[]>([]);
   const [membersLoading, setMembersLoading] = useState(false);
   const [membersError, setMembersError] = useState<string | null>(null);
+  const [activeModel, setActiveModel] = useState<CalibrationModel | null>(null);
 
   const loadMembers = useCallback(
     async (projectId: string) => {
@@ -67,6 +69,22 @@ export default function ProjectOverviewScreen() {
     useCallback(() => {
       loadMembers((project as any)?.id || (id as string));
     }, [id, loadMembers, project])
+  );
+
+  const loadActiveModel = useCallback(async () => {
+    if (!id) return;
+    try {
+      const model = await getActiveModel(id as string, token || undefined);
+      setActiveModel(model);
+    } catch {
+      setActiveModel(null);
+    }
+  }, [id, token]);
+
+  useFocusEffect(
+    useCallback(() => {
+      loadActiveModel();
+    }, [loadActiveModel])
   );
 
   const Tabs = (
@@ -264,6 +282,31 @@ export default function ProjectOverviewScreen() {
 
             {activeTab === "Calibration" && (
               <View style={{ gap: 12 }}>
+                {activeModel ? (
+                  <View className="rounded-xl bg-slate-800 p-4">
+                    <Text className="text-slate-300 text-sm mb-1">Active Model</Text>
+                    <Text className="text-white text-base font-semibold">
+                      r² {activeModel.r2.toFixed(2)} • RMSE {activeModel.rmse?.toFixed(2) ?? "--"} MPa
+                    </Text>
+                    <Text className="text-slate-400 text-xs mt-2">
+                      Points used: {activeModel.points_used} • Carbonation:{" "}
+                      {activeModel.use_carbonation ? "Yes" : "No"}
+                    </Text>
+                    <Text className="text-slate-500 text-xs mt-1">
+                      UPV {activeModel.upv_min ?? "--"}–{activeModel.upv_max ?? "--"} m/s • RH{" "}
+                      {activeModel.rh_min ?? "--"}–{activeModel.rh_max ?? "--"}
+                    </Text>
+                  </View>
+                ) : (
+                  <View className="rounded-xl bg-slate-800 p-4">
+                    <Text className="text-white font-semibold mb-1">
+                      No active model
+                    </Text>
+                    <Text className="text-slate-400 text-xs">
+                      Generate a model in Calibration to see coefficients here.
+                    </Text>
+                  </View>
+                )}
                 <Link href="/calibration" asChild>
                   <TouchableOpacity className="rounded-xl bg-slate-800 p-4 active:bg-slate-700">
                     <Text className="text-white font-semibold mb-1">

@@ -13,5 +13,6 @@ urlpatterns = [
     path("points/<int:pk>/", CalibrationPointDetailView.as_view(), name="calibration-point-detail"),
     path("generate/", GenerateModelView.as_view(), name="calibration-generate"),
     path("model/", ActiveModelView.as_view(), name="calibration-model"),
+    path("active/", ActiveModelView.as_view(), name="calibration-active"),
     path("diagnostics/", CalibrationDiagnosticsView.as_view(), name="calibration-diagnostics"),
 ]

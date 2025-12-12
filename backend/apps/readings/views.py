@@ -75,14 +75,15 @@ class ReadingListCreateView(APIView):
             "upv": upv,
             "rh_index": rh_index,
             "carbonation_depth": carbonation_depth,
-            "estimated_fc": estimated_fc,
-            "rating": rating,
-            "model_used": model_used,
         }
 
         serializer = ReadingSerializer(data=payload)
         if serializer.is_valid():
-            reading = serializer.save()
+            reading = serializer.save(
+                estimated_fc=estimated_fc,
+                rating=rating,
+                model_used=model_used,
+            )
             return Response(
                 ReadingSerializer(reading).data,
                 status=status.HTTP_201_CREATED,

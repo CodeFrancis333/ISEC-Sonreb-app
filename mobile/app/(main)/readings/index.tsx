@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator } from "react-native";
+import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Alert } from "react-native";
 import { Link, useRouter } from "expo-router";
 import Screen from "../../../components/layout/Screen";
 import { listReadings, deleteReading, Reading } from "../../../services/readingService";
@@ -114,8 +114,12 @@ export default function AllReadingsListScreen() {
                             text: "Yes",
                             style: "default",
                             onPress: async () => {
-                              await deleteReading(reading.id, token || undefined);
-                              setReadings((prev) => prev.filter((r) => r.id !== reading.id));
+                              try {
+                                await deleteReading(reading.id, token || undefined);
+                                setReadings((prev) => prev.filter((r) => r.id !== reading.id));
+                              } catch (err: any) {
+                                Alert.alert("Delete failed", err?.message || "Unable to delete reading.");
+                              }
                             },
                           },
                           { text: "No", style: "cancel" },

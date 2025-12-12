@@ -19,7 +19,7 @@ export type Reading = {
 
 export type CreateReadingPayload = {
   project: string;
-  member: string;
+  member?: string | null;
   location_tag: string;
   upv: number;
   rh_index: number;
