@@ -105,9 +105,22 @@ export default function AllReadingsListScreen() {
                     </TouchableOpacity>
                   </Link>
                   <TouchableOpacity
-                    onPress={async () => {
-                      await deleteReading(reading.id, token || undefined);
-                      setReadings((prev) => prev.filter((r) => r.id !== reading.id));
+                    onPress={() => {
+                      Alert.alert(
+                        "Delete reading?",
+                        "Are you sure you want to delete this reading?",
+                        [
+                          {
+                            text: "Yes",
+                            style: "default",
+                            onPress: async () => {
+                              await deleteReading(reading.id, token || undefined);
+                              setReadings((prev) => prev.filter((r) => r.id !== reading.id));
+                            },
+                          },
+                          { text: "No", style: "cancel" },
+                        ]
+                      );
                     }}
                   >
                     <Text className="text-rose-300 text-xs">Delete</Text>

@@ -65,7 +65,7 @@ export default function LoginScreen() {
 
         <View className="flex-row justify-between items-center mt-4">
           <TouchableOpacity
-            onPress={() => router.replace("/(auth)/register")}
+            onPress={() => router.push("/(auth)/register")}
             className="pr-2"
           >
             <Text className="text-emerald-400 text-xs">
@@ -73,7 +73,7 @@ export default function LoginScreen() {
             </Text>
           </TouchableOpacity>
 
-          <TouchableOpacity onPress={() => router.replace("/(auth)/forgot")}>
+          <TouchableOpacity onPress={() => router.push("/(auth)/forgot")}>
             <Text className="text-slate-400 text-xs">Forgot password?</Text>
           </TouchableOpacity>
         </View>

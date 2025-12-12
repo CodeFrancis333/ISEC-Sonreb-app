@@ -4,6 +4,7 @@ import { Link, type Href } from "expo-router";
 import Screen from "../../components/layout/Screen";
 import { useAuthStore } from "../../store/authStore";
 import { useRouter } from "expo-router";
+import { Alert } from "react-native";
 
 type Tile = {
   title: string;
@@ -46,8 +47,21 @@ export default function MainHomeScreen() {
   const router = useRouter();
 
   const handleSignOut = async () => {
-    await clearAuth();
-    router.replace("/(auth)/welcome");
+    Alert.alert(
+      "Log out?",
+      "Are you sure you want to log out?",
+      [
+        {
+          text: "Yes",
+          style: "default",
+          onPress: async () => {
+            await clearAuth();
+            router.replace("/(auth)/welcome");
+          },
+        },
+        { text: "No", style: "cancel" },
+      ]
+    );
   };
 
   return (

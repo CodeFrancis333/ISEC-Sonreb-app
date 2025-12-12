@@ -48,7 +48,7 @@ export default function ForgotPasswordScreen() {
     try {
       await resetPassword(uid, token, newPassword, confirmPassword);
       Alert.alert("Success", "Password reset. Please log in.", [
-        { text: "OK", onPress: () => router.replace("/(auth)/login") },
+        { text: "OK", onPress: () => router.push("/(auth)/login") },
       ]);
     } catch (err: any) {
       Alert.alert("Reset failed", err.message || "Try again.");

@@ -3,7 +3,7 @@ import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Alert } fr
 import { Link, useRouter, useFocusEffect } from "expo-router";
 import Screen from "../../../components/layout/Screen";
 import { useAuthStore } from "../../../store/authStore";
-import { listProjects, Project } from "../../../services/projectService";
+import { listProjects, Project, listMembers, Member } from "../../../services/projectService";
 import { listCalibrationPoints, CalibrationPoint, deleteCalibrationPoint } from "../../../services/calibrationService";
 import Select from "../../../components/ui/Select";
 
@@ -14,6 +14,7 @@ export default function CalibrationPointsListScreen() {
   const [selectedProject, setSelectedProject] = useState<string | null>(null);
   const [showProjectList, setShowProjectList] = useState(false);
   const [points, setPoints] = useState<CalibrationPoint[]>([]);
+  const [members, setMembers] = useState<Member[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -24,6 +25,7 @@ export default function CalibrationPointsListScreen() {
       const firstId = projList[0]?.id || null;
       setSelectedProject(firstId);
       if (firstId) {
+        await fetchMembers(firstId);
         await fetchPoints(firstId);
       }
     } catch (err: any) {
@@ -38,6 +40,7 @@ export default function CalibrationPointsListScreen() {
   useFocusEffect(
     useCallback(() => {
       if (selectedProject) {
+        fetchMembers(selectedProject);
         fetchPoints(selectedProject);
       }
     }, [selectedProject])
@@ -60,6 +63,37 @@ export default function CalibrationPointsListScreen() {
       setLoading(false);
     }
   }
+
+  async function fetchMembers(projectId: string) {
+    try {
+      const data = await listMembers(projectId, token || undefined);
+      setMembers(data);
+    } catch (err: any) {
+      if (err?.status === 401 || err?.status === 403) {
+        await useAuthStore.getState().clearAuth();
+        router.replace("/(auth)/login");
+        return;
+      }
+    }
+  }
+
+  const getMemberLabel = (p: CalibrationPoint) => {
+    const memberObj = members.find((m) => m.id === (p as any).member);
+    if (memberObj?.member_id) {
+      const parts = memberObj.member_id.split(" - ");
+      return (parts.pop() || memberObj.member_id).trim();
+    }
+    const rawMember =
+      (p as any).member_name ||
+      (p as any).member_label ||
+      (p as any).member_display ||
+      (p as any).member;
+    if (typeof rawMember === "string" && rawMember.length) {
+      const parts = rawMember.split(" - ");
+      return (parts.pop() || rawMember).trim();
+    }
+    return "Member";
+  };
 
   const minRequired = 5;
   const minCarbonation = 8;
@@ -116,6 +150,7 @@ export default function CalibrationPointsListScreen() {
               key={p.id}
               onPress={() => {
                 setSelectedProject(p.id);
+                fetchMembers(p.id);
                 fetchPoints(p.id);
                 setShowProjectList(false);
               }}
@@ -155,59 +190,78 @@ export default function CalibrationPointsListScreen() {
           contentContainerStyle={{ paddingBottom: 150 }}
         >
           <View className="gap-3">
-            {points.map((p) => (
-              <View key={p.id} className="rounded-xl bg-slate-800 p-4">
-                <Text className="text-white font-semibold">
-                  {(p.member as any) || "Member"} → Core: {p.core_fc.toFixed(1)} MPa
-                </Text>
-                <Text className="text-slate-400 text-xs mt-1">
-                  UPV {p.upv} m/s → RH {p.rh_index}{" "}
-                  {p.carbonation_depth !== null && p.carbonation_depth !== undefined
-                    ? `→ Carbonation ${p.carbonation_depth} mm`
-                    : ""}
-                </Text>
-                <Text className="text-slate-500 text-xs mt-1">
-                  {new Date(p.created_at).toISOString().slice(0, 10)}
-                </Text>
-                <View className="flex-row gap-4 mt-2">
-                  <Link
-                    href={{
-                      pathname: "/calibration/edit-point",
-                      params: {
-                        pointId: p.id,
-                        projectId: selectedProject || "",
-                        member: (p as any).member || "",
-                        upv: String(p.upv),
-                        rh: String(p.rh_index),
-                        carbonation:
-                          p.carbonation_depth !== null && p.carbonation_depth !== undefined
-                            ? String(p.carbonation_depth)
-                            : "",
-                        core_fc: String(p.core_fc),
-                        notes: (p as any).notes || "",
-                      },
-                    }}
-                    asChild
-                  >
-                    <TouchableOpacity>
-                      <Text className="text-emerald-300 text-xs">Edit</Text>
+            {points.map((p, idx) => {
+              const memberLabel = getMemberLabel(p);
+              return (
+                <View key={p.id} className="rounded-xl bg-slate-800 p-4">
+                  <View className="flex-row items-start justify-between">
+                    <Text className="text-white font-semibold">
+                      Core: {p.core_fc.toFixed(1)} MPa
+                    </Text>
+                    <Text className="text-emerald-200 text-xs font-semibold">
+                      {memberLabel} • #{idx + 1}
+                    </Text>
+                  </View>
+                  <Text className="text-slate-400 text-xs mt-1">
+                    UPV {p.upv} m/s → RH {p.rh_index}{" "}
+                    {p.carbonation_depth !== null && p.carbonation_depth !== undefined
+                      ? `→ Carbonation ${p.carbonation_depth} mm`
+                      : ""}
+                  </Text>
+                  <Text className="text-slate-500 text-xs mt-1">
+                    {new Date(p.created_at).toISOString().slice(0, 10)}
+                  </Text>
+                  <View className="flex-row gap-4 mt-2">
+                    <Link
+                      href={{
+                        pathname: "/calibration/edit-point",
+                        params: {
+                          pointId: p.id,
+                          projectId: selectedProject || "",
+                          member: (p as any).member || "",
+                          upv: String(p.upv),
+                          rh: String(p.rh_index),
+                          carbonation:
+                            p.carbonation_depth !== null && p.carbonation_depth !== undefined
+                              ? String(p.carbonation_depth)
+                              : "",
+                          core_fc: String(p.core_fc),
+                          notes: (p as any).notes || "",
+                        },
+                      }}
+                      asChild
+                    >
+                      <TouchableOpacity>
+                        <Text className="text-emerald-300 text-xs">Edit</Text>
+                      </TouchableOpacity>
+                    </Link>
+                    <TouchableOpacity
+                      onPress={() => {
+                        Alert.alert(
+                          "Delete calibration point?",
+                          "Are you sure you want to delete this calibration point?",
+                          [
+                            {
+                              text: "Yes",
+                              style: "default",
+                              onPress: async () => {
+                                await deleteCalibrationPoint(p.id, token || undefined);
+                                if (selectedProject) fetchPoints(selectedProject);
+                              },
+                            },
+                            { text: "No", style: "cancel" },
+                          ]
+                        );
+                      }}
+                    >
+                      <Text className="text-rose-300 text-xs">Delete</Text>
                     </TouchableOpacity>
-                  </Link>
-                  <TouchableOpacity
-                    onPress={async () => {
-                      await deleteCalibrationPoint(p.id, token || undefined);
-                      if (selectedProject) fetchPoints(selectedProject);
-                    }}
-                  >
-                    <Text className="text-rose-300 text-xs">Delete</Text>
-                  </TouchableOpacity>
+                  </View>
                 </View>
-              </View>
-            ))}
+              );
+            })}
             {!points.length && (
-              <Text className="text-slate-400 text-xs">
-                No calibration points yet for this project.
-              </Text>
+              <Text className="text-slate-400 text-xs">No calibration points yet for this project.</Text>
             )}
           </View>
           <View className="mt-2">

@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from "react";
-import { View, Text, TouchableOpacity, ScrollView, ActivityIndicator } from "react-native";
+import { View, Text, TouchableOpacity, ScrollView, ActivityIndicator, Alert } from "react-native";
 import { useLocalSearchParams, Link, useRouter, useFocusEffect, Href } from "expo-router";
 import Screen from "../../../components/layout/Screen";
 import { getProject, Project, listMembers, Member, deleteMember } from "../../../services/projectService";
@@ -205,9 +205,22 @@ export default function ProjectOverviewScreen() {
                         </TouchableOpacity>
                       </Link>
                       <TouchableOpacity
-                        onPress={async () => {
-                          await deleteMember((project as any)?.id || (id as string), m.id, token || undefined);
-                          loadMembers((project as any)?.id || (id as string));
+                        onPress={() => {
+                          Alert.alert(
+                            "Delete member?",
+                            "Are you sure you want to delete this member?",
+                            [
+                              {
+                                text: "Yes",
+                                style: "default",
+                                onPress: async () => {
+                                  await deleteMember((project as any)?.id || (id as string), m.id, token || undefined);
+                                  loadMembers((project as any)?.id || (id as string));
+                                },
+                              },
+                              { text: "No", style: "cancel" },
+                            ]
+                          );
                         }}
                       >
                         <Text className="text-rose-300 text-xs">Delete</Text>

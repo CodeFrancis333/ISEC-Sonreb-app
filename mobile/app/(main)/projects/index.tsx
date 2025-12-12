@@ -4,6 +4,7 @@ import { Link, useFocusEffect, useRouter } from "expo-router";
 import Screen from "../../../components/layout/Screen";
 import { listProjects, Project, deleteProject } from "../../../services/projectService";
 import { useAuthStore } from "../../../store/authStore";
+import { Alert } from "react-native";
 
 export default function ProjectsListScreen() {
   const { token } = useAuthStore();
@@ -116,9 +117,22 @@ export default function ProjectsListScreen() {
                   </TouchableOpacity>
                 </Link>
                 <TouchableOpacity
-                  onPress={async () => {
-                    await deleteProject(project.id, token || undefined);
-                    loadProjects();
+                  onPress={() => {
+                    Alert.alert(
+                      "Delete project?",
+                      "Are you sure you want to delete this project?",
+                      [
+                        {
+                          text: "Yes",
+                          style: "default",
+                          onPress: async () => {
+                            await deleteProject(project.id, token || undefined);
+                            loadProjects();
+                          },
+                        },
+                        { text: "No", style: "cancel" },
+                      ]
+                    );
                   }}
                   className="mt-2"
                 >

@@ -6,6 +6,8 @@ import Input from "../../../components/ui/Input";
 import Button from "../../../components/ui/Button";
 import { updateCalibrationPoint } from "../../../services/calibrationService";
 import { useAuthStore } from "../../../store/authStore";
+import { listMembers, Member } from "../../../services/projectService";
+import Select from "../../../components/ui/Select";
 
 export default function EditCalibrationPointScreen() {
   const router = useRouter();
@@ -24,6 +26,9 @@ export default function EditCalibrationPointScreen() {
   const { token } = useAuthStore();
 
   const [memberId, setMemberId] = useState<string | null>(params.member ? String(params.member) : null);
+  const [members, setMembers] = useState<Member[]>([]);
+  const [membersError, setMembersError] = useState<string | null>(null);
+  const [showMemberList, setShowMemberList] = useState(false);
   const [upv, setUpv] = useState(params.upv ? String(params.upv) : "");
   const [rh, setRh] = useState(params.rh ? String(params.rh) : "");
   const [carbonation, setCarbonation] = useState(params.carbonation ? String(params.carbonation) : "");
@@ -37,6 +42,19 @@ export default function EditCalibrationPointScreen() {
       router.back();
     }
   }, [pointId, router]);
+
+  useEffect(() => {
+    async function loadMembers() {
+      if (!projectId) return;
+      try {
+        const data = await listMembers(projectId, token || undefined);
+        setMembers(data);
+      } catch (err: any) {
+        setMembersError(err.message || "Unable to load members.");
+      }
+    }
+    loadMembers();
+  }, [projectId, token]);
 
   const handleSave = async () => {
     if (!pointId) {
@@ -87,12 +105,38 @@ export default function EditCalibrationPointScreen() {
           Update field NDT readings and corresponding core strength.
         </Text>
 
-        <Input
+        <Select
           label="Member (optional)"
-          value={memberId || ""}
-          onChangeText={(val) => setMemberId(val || null)}
-          placeholder="e.g. C1"
+          value={memberId ? members.find((m) => m.id === memberId)?.member_id || "" : ""}
+          placeholder={members.length ? "Select member" : "No members; leave blank"}
+          onPress={() => {
+            if (members.length) setShowMemberList((prev) => !prev);
+          }}
         />
+        {showMemberList && members.length > 0 && (
+          <View className="mb-3 rounded-xl border border-slate-700 bg-slate-800/90">
+            {members.map((m) => (
+              <TouchableOpacity
+                key={m.id}
+                onPress={() => {
+                  setMemberId(m.id);
+                  setShowMemberList(false);
+                }}
+                className={`px-3 py-2 ${memberId === m.id ? "bg-emerald-500/10" : ""}`}
+              >
+                <Text className="text-white text-sm">{m.member_id}</Text>
+                <Text className="text-slate-400 text-xs">
+                  {m.type}
+                  {m.level ? ` → ${m.level}` : ""}
+                  {m.gridline ? ` → Grid ${m.gridline}` : ""}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
+        {membersError ? (
+          <Text className="text-rose-300 text-xs mb-2">{membersError}</Text>
+        ) : null}
 
         <Input
           label="UPV (m/s)"

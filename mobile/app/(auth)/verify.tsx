@@ -103,7 +103,7 @@ export default function VerifyEmailScreen() {
           </Button>
         </View>
 
-        <TouchableOpacity onPress={() => router.replace("/(auth)/login")}>
+        <TouchableOpacity onPress={() => router.push("/(auth)/login")}>
           <Text className="text-emerald-400 text-xs mt-4">Back to login</Text>
         </TouchableOpacity>
       </View>
