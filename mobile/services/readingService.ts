@@ -7,6 +7,7 @@ export type Reading = {
   id: string;
   project: string;  // project ID
   member?: string | null;   // member ID
+  member_text?: string | null;
   location_tag: string;
   upv: number;
   rh_index: number;
@@ -14,12 +15,15 @@ export type Reading = {
   estimated_fc: number;
   rating: Rating;
   model_used: string;
+  project_name?: string;
+  member_label?: string;
   created_at: string; // ISO string
 };
 
 export type CreateReadingPayload = {
   project: string;
   member?: string | null;
+  member_text?: string | null;
   location_tag: string;
   upv: number;
   rh_index: number;

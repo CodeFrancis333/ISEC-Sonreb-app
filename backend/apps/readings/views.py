@@ -39,14 +39,16 @@ class ReadingListCreateView(APIView):
             )
 
         member = None
+        member_text = data.get("member_text") or ""
         if member_id:
+            # If the incoming "member" looks like an ID and exists, use FK; otherwise treat as free text.
             try:
-                member = Member.objects.get(id=member_id, project=project)
+                if str(member_id).isdigit():
+                    member = Member.objects.get(id=member_id, project=project)
+                else:
+                    member_text = str(member_id)
             except Member.DoesNotExist:
-                return Response(
-                    {"detail": "Member not found for this project."},
-                    status=status.HTTP_404_NOT_FOUND,
-                )
+                member_text = str(member_id)
 
         upv = float(data.get("upv"))
         rh_index = float(data.get("rh_index"))
@@ -71,6 +73,7 @@ class ReadingListCreateView(APIView):
         payload = {
             "project": project.id,
             "member": member.id if member else None,
+            "member_text": member_text,
             "location_tag": data.get("location_tag", ""),
             "upv": upv,
             "rh_index": rh_index,

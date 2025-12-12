@@ -37,9 +37,7 @@ export default function AllReadingsListScreen() {
       <View className="mb-4">
         <Text className="text-xs text-emerald-400 uppercase">Readings</Text>
         <Text className="text-xl font-bold text-white">All Readings</Text>
-        <Text className="text-slate-400 text-xs mt-1">
-          Browse all saved readings across projects.
-        </Text>
+        <Text className="text-slate-400 text-xs mt-1">Browse all saved readings across projects.</Text>
       </View>
 
       {error ? (
@@ -70,14 +68,32 @@ export default function AllReadingsListScreen() {
                 >
                   <TouchableOpacity className="rounded-xl bg-slate-800 p-4 active:bg-slate-700">
                     <Text className="text-white font-semibold">
-                      {(reading as any).project_name || reading.project} → {reading.member || "N/A"}
+                      {(() => {
+                        const projectName = ((reading as any).project_name as string) || reading.project;
+                        const memberDisplay =
+                          ((reading as any).member_label as string) ||
+                          (reading as any).member_text ||
+                          (reading as any).member ||
+                          undefined;
+                        const location = (reading as any).location_tag as string | undefined;
+                        const parts = [projectName];
+                        if (memberDisplay) parts.push(memberDisplay);
+                        if (location && location !== memberDisplay) parts.push(location);
+                        return parts.join(" - ");
+                      })()}
                     </Text>
-                    <Text className="text-slate-400 text-xs mt-1">
-                      fc' est. {reading.estimated_fc.toFixed(1)} MPa → {reading.rating}
+                    <Text
+                      className={`text-xs mt-1 ${
+                        reading.rating === "GOOD"
+                          ? "text-emerald-300"
+                          : reading.rating === "FAIR"
+                          ? "text-amber-300"
+                          : "text-rose-300"
+                      }`}
+                    >
+                      fc' est. {reading.estimated_fc.toFixed(1)} MPa • {reading.rating}
                     </Text>
-                    <Text className="text-slate-500 text-xs mt-2">
-                      Model: {reading.model_used}
-                    </Text>
+                    <Text className="text-slate-500 text-xs mt-2">Model: {reading.model_used}</Text>
                   </TouchableOpacity>
                 </Link>
                 <View className="flex-row gap-4 mt-1">
@@ -132,9 +148,7 @@ export default function AllReadingsListScreen() {
                 </View>
               </View>
             ))}
-            {!readings.length && (
-              <Text className="text-slate-400 text-xs">No readings yet.</Text>
-            )}
+            {!readings.length && <Text className="text-slate-400 text-xs">No readings yet.</Text>}
           </View>
         </ScrollView>
       )}

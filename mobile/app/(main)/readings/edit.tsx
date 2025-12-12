@@ -4,8 +4,9 @@ import Screen from "../../../components/layout/Screen";
 import Input from "../../../components/ui/Input";
 import Button from "../../../components/ui/Button";
 import { useAuthStore } from "../../../store/authStore";
-import { listProjects, listMembers, Project, Member } from "../../../services/projectService";
+import { listProjects, Project } from "../../../services/projectService";
 import { updateReading } from "../../../services/readingService";
+import { getActiveModel, CalibrationModel } from "../../../services/calibrationService";
 import { useRouter, useLocalSearchParams } from "expo-router";
 
 export default function EditReadingScreen() {
@@ -23,13 +24,13 @@ export default function EditReadingScreen() {
   const { token } = useAuthStore();
 
   const [projects, setProjects] = useState<Project[]>([]);
-  const [members, setMembers] = useState<Member[]>([]);
   const [projectId, setProjectId] = useState<string | null>(params.projectId ? String(params.projectId) : null);
-  const [memberId, setMemberId] = useState<string | null>(params.memberId ? String(params.memberId) : null);
+  const [memberText, setMemberText] = useState<string>("");
   const [locationTag, setLocationTag] = useState(params.location_tag ? String(params.location_tag) : "");
   const [upv, setUpv] = useState(params.upv ? String(params.upv) : "");
   const [rh, setRh] = useState(params.rh ? String(params.rh) : "");
   const [carbonation, setCarbonation] = useState(params.carbonation ? String(params.carbonation) : "");
+  const [modelInfo, setModelInfo] = useState<CalibrationModel | null>(null);
   const [loading, setLoading] = useState(false);
   const [loadingMeta, setLoadingMeta] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -42,7 +43,12 @@ export default function EditReadingScreen() {
         const first = projectId || data[0]?.id || null;
         setProjectId(first);
         if (first) {
-          await loadMembers(first);
+          try {
+            const model = await getActiveModel(first, token || undefined);
+            setModelInfo(model);
+          } catch {
+            setModelInfo(null);
+          }
         }
       } catch (err: any) {
         setError(err.message || "Unable to load projects.");
@@ -52,15 +58,6 @@ export default function EditReadingScreen() {
     }
     loadProjects();
   }, [projectId, token]);
-
-  async function loadMembers(pid: string) {
-    try {
-      const data = await listMembers(pid, token || undefined);
-      setMembers(data);
-    } catch {
-      setMembers([]);
-    }
-  }
 
   const handleSave = async () => {
     if (!readingId) {
@@ -79,8 +76,9 @@ export default function EditReadingScreen() {
       setLoading(true);
       const payload: any = {
         project: projectId,
-        member: memberId || null,
-        location_tag: locationTag,
+        member: null,
+        member_text: memberText || null,
+        location_tag: locationTag || memberText || "Reading",
         upv: parseFloat(upv),
         rh_index: parseFloat(rh),
       };
@@ -124,8 +122,9 @@ export default function EditReadingScreen() {
                     key={p.id}
                     onPress={() => {
                       setProjectId(p.id);
-                      setMemberId(null);
-                      loadMembers(p.id);
+                      getActiveModel(p.id, token || undefined)
+                        .then(setModelInfo)
+                        .catch(() => setModelInfo(null));
                     }}
                     className={`px-3 py-2 rounded-full border ${
                       projectId === p.id ? "border-emerald-500 bg-emerald-500/10" : "border-slate-600"
@@ -139,24 +138,12 @@ export default function EditReadingScreen() {
               </View>
             </ScrollView>
 
-            <Text className="text-slate-200 text-sm mb-2">Member (optional)</Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} className="mb-3">
-              <View className="flex-row gap-2">
-                {members.map((m) => (
-                  <TouchableOpacity
-                    key={m.id}
-                    onPress={() => setMemberId(m.id)}
-                    className={`px-3 py-2 rounded-full border ${
-                      memberId === m.id ? "border-emerald-500 bg-emerald-500/10" : "border-slate-600"
-                    }`}
-                  >
-                    <Text className={memberId === m.id ? "text-white text-xs" : "text-slate-200 text-xs"}>
-                      {m.member_id}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            </ScrollView>
+            <Input
+              label="Member (optional, free text)"
+              value={memberText}
+              onChangeText={setMemberText}
+              placeholder="e.g. C1 or North Wall"
+            />
 
             <Input
               label="Location Tag (optional)"
@@ -173,13 +160,26 @@ export default function EditReadingScreen() {
               placeholder="e.g. 4200"
             />
 
-            <Input
-              label="Rebound Index"
-              keyboardType="numeric"
-              value={rh}
-              onChangeText={setRh}
-              placeholder="e.g. 32"
-            />
+        <Input
+          label="Rebound Index"
+          keyboardType="numeric"
+          value={rh}
+          onChangeText={setRh}
+          placeholder="e.g. 32"
+        />
+        {(() => {
+          const rhVal = parseFloat(rh);
+          const tooLow = modelInfo?.rh_min !== null && modelInfo?.rh_min !== undefined && !Number.isNaN(rhVal) && rhVal < (modelInfo?.rh_min as number);
+          const tooHigh = modelInfo?.rh_max !== null && modelInfo?.rh_max !== undefined && !Number.isNaN(rhVal) && rhVal > (modelInfo?.rh_max as number);
+          const warning = tooLow
+            ? `Below calibrated RH min (${modelInfo?.rh_min})`
+            : tooHigh
+            ? `Above calibrated RH max (${modelInfo?.rh_max})`
+            : "";
+          return warning ? (
+            <Text className="text-rose-300 text-[11px] text-right -mt-2 mb-2">{warning}</Text>
+          ) : null;
+        })()}
 
             <Input
               label="Carbonation Depth (mm, optional)"

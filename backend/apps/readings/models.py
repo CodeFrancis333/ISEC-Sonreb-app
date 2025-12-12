@@ -16,6 +16,7 @@ class Reading(models.Model):
     member = models.ForeignKey(
         Member, on_delete=models.SET_NULL, null=True, blank=True, related_name="readings"
     )
+    member_text = models.CharField("Member", max_length=255, blank=True)
     location_tag = models.CharField(max_length=255, blank=True)
 
     upv = models.FloatField()               # m/s
@@ -31,4 +32,5 @@ class Reading(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return f"{self.project.name} - {self.member} - {self.estimated_fc:.1f} MPa"
+        label = self.member.member_id if self.member else (self.member_text or "No member")
+        return f"{self.project.name} - {label} - {self.estimated_fc:.1f} MPa"

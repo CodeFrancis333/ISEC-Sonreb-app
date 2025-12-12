@@ -28,37 +28,6 @@ def compute_estimated_fc(
     c = model.a2
     d = model.a3 if model.use_carbonation else None
 
-    # Validity checks based on calibrated ranges
-    out_of_range_fields = []
-    if model.upv_min is not None and upv < model.upv_min:
-        out_of_range_fields.append("UPV")
-    if model.upv_max is not None and upv > model.upv_max:
-        out_of_range_fields.append("UPV")
-    if model.rh_min is not None and rh_index < model.rh_min:
-        out_of_range_fields.append("RH index")
-    if model.rh_max is not None and rh_index > model.rh_max:
-        out_of_range_fields.append("RH index")
-    if model.use_carbonation:
-        if (
-            model.carbonation_min is not None
-            and carbonation_depth is not None
-            and carbonation_depth < model.carbonation_min
-        ):
-            out_of_range_fields.append("carbonation depth")
-        if (
-            model.carbonation_max is not None
-            and carbonation_depth is not None
-            and carbonation_depth > model.carbonation_max
-        ):
-            out_of_range_fields.append("carbonation depth")
-
-    if out_of_range_fields:
-        # ACI-aligned guard: do not use the model outside its calibrated range
-        raise ValueError(
-            "Input values are outside the calibrated range for this project "
-            f"({', '.join(sorted(set(out_of_range_fields)))})."
-        )
-
     if upv <= 0 or rh_index <= 0:
         raise ValueError("UPV and RH must be positive to apply the SonReb model.")
 

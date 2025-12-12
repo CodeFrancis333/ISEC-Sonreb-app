@@ -4,14 +4,21 @@ from .models import Reading
 
 @admin.register(Reading)
 class ReadingAdmin(admin.ModelAdmin):
-    list_display = (
+    """
+    Show only the free-text member field (named "Member") in the admin,
+    hiding the FK dropdown to avoid duplicate inputs.
+    """
+
+    fields = [
         "project",
-        "member",
-        "estimated_fc",
-        "rating",
+        "member_text",
+        "location_tag",
         "upv",
         "rh_index",
-        "created_at",
-    )
-    search_fields = ("project__name", "member__member_id", "location_tag")
-    list_filter = ("rating", "project")
+        "carbonation_depth",
+        "estimated_fc",
+        "rating",
+        "model_used",
+    ]
+    readonly_fields = ["estimated_fc", "rating", "model_used"]
+    exclude = ["member"]

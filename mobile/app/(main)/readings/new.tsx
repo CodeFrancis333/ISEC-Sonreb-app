@@ -6,6 +6,7 @@ import Button from "../../../components/ui/Button";
 import { useAuthStore } from "../../../store/authStore";
 import { listProjects, Project } from "../../../services/projectService";
 import { createReading } from "../../../services/readingService";
+import { getActiveModel, CalibrationModel } from "../../../services/calibrationService";
 import { useRouter } from "expo-router";
 
 export default function NewReadingScreen() {
@@ -19,6 +20,7 @@ export default function NewReadingScreen() {
   const [upv, setUpv] = useState("");
   const [rh, setRh] = useState("");
   const [carbonation, setCarbonation] = useState("");
+  const [modelInfo, setModelInfo] = useState<CalibrationModel | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -29,6 +31,14 @@ export default function NewReadingScreen() {
         setProjects(data);
         const first = data[0]?.id || null;
         setProjectId(first);
+        if (first) {
+          try {
+            const model = await getActiveModel(first, token || undefined);
+            setModelInfo(model);
+          } catch {
+            setModelInfo(null);
+          }
+        }
       } catch (err: any) {
         setError(err.message || "Unable to load projects.");
       }
@@ -49,6 +59,8 @@ export default function NewReadingScreen() {
       setLoading(true);
       const payload: any = {
         project: projectId,
+        member: null,
+        member_text: memberLabel || null,
         location_tag: locationTag || memberLabel || "New reading",
         upv: parseFloat(upv),
         rh_index: parseFloat(rh),
@@ -87,6 +99,9 @@ export default function NewReadingScreen() {
                 onPress={() => {
                   setProjectId(p.id);
                   setMemberLabel("");
+                  getActiveModel(p.id, token || undefined)
+                    .then(setModelInfo)
+                    .catch(() => setModelInfo(null));
                 }}
                 className={`px-3 py-2 rounded-full border ${
                   projectId === p.id ? "border-emerald-500 bg-emerald-500/10" : "border-slate-600"
@@ -129,6 +144,19 @@ export default function NewReadingScreen() {
           onChangeText={setRh}
           placeholder="e.g. 32"
         />
+        {(() => {
+          const rhVal = parseFloat(rh);
+          const tooLow = modelInfo?.rh_min !== null && modelInfo?.rh_min !== undefined && !Number.isNaN(rhVal) && rhVal < (modelInfo?.rh_min as number);
+          const tooHigh = modelInfo?.rh_max !== null && modelInfo?.rh_max !== undefined && !Number.isNaN(rhVal) && rhVal > (modelInfo?.rh_max as number);
+          const warning = tooLow
+            ? `Below calibrated RH min (${modelInfo?.rh_min})`
+            : tooHigh
+            ? `Above calibrated RH max (${modelInfo?.rh_max})`
+            : "";
+          return warning ? (
+            <Text className="text-rose-300 text-[11px] text-right -mt-2 mb-2">{warning}</Text>
+          ) : null;
+        })()}
 
         <Input
           label="Carbonation Depth (mm, optional)"
