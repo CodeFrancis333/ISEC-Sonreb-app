@@ -1,22 +1,53 @@
 import React, { useEffect, useState } from "react";
-import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Alert } from "react-native";
+import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Alert, TextInput } from "react-native";
 import { Link, useRouter } from "expo-router";
 import Screen from "../../../components/layout/Screen";
-import { listReadings, deleteReading, Reading } from "../../../services/readingService";
+import { listReadings, listReadingsByProject, deleteReading, Reading } from "../../../services/readingService";
+import { listProjects, Project } from "../../../services/projectService";
 import { useAuthStore } from "../../../store/authStore";
 
 export default function AllReadingsListScreen() {
   const { token } = useAuthStore();
   const router = useRouter();
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
+  const [showProjectPicker, setShowProjectPicker] = useState(false);
+  const [projectSearch, setProjectSearch] = useState("");
   const [readings, setReadings] = useState<Reading[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    async function load() {
+    async function loadProjects() {
       try {
         setLoading(true);
-        const data = await listReadings(token || undefined);
+        const proj = await listProjects(token || undefined);
+        setProjects(proj);
+        const first = proj[0]?.id || null;
+        setSelectedProjectId((prev) => prev || first);
+      } catch (err: any) {
+        if (err?.status === 401 || err?.status === 403) {
+          await useAuthStore.getState().clearAuth();
+          router.replace("/(auth)/login");
+          return;
+        }
+        setError(err.message || "Unable to load readings.");
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadProjects();
+  }, [token]);
+
+  useEffect(() => {
+    async function loadReadings() {
+      if (!selectedProjectId) {
+        setReadings([]);
+        return;
+      }
+      try {
+        setLoading(true);
+        const data = await listReadingsByProject(selectedProjectId, token || undefined);
         setReadings(data);
       } catch (err: any) {
         if (err?.status === 401 || err?.status === 403) {
@@ -29,8 +60,8 @@ export default function AllReadingsListScreen() {
         setLoading(false);
       }
     }
-    load();
-  }, [token]);
+    loadReadings();
+  }, [selectedProjectId, token, router]);
 
   return (
     <Screen showNav>
@@ -38,6 +69,45 @@ export default function AllReadingsListScreen() {
         <Text className="text-xs text-emerald-400 uppercase">Readings</Text>
         <Text className="text-xl font-bold text-white">All Readings</Text>
         <Text className="text-slate-400 text-xs mt-1">Browse all saved readings across projects.</Text>
+      </View>
+
+      <View className="mb-3">
+        <Text className="text-slate-200 text-sm mb-1">Select Project Folder</Text>
+        <TouchableOpacity
+          onPress={() => setShowProjectPicker((prev) => !prev)}
+          className="border border-slate-600 rounded-lg px-3 py-3 bg-slate-800"
+        >
+          <Text className="text-slate-100 text-xs">
+            {projects.find((p) => p.id === selectedProjectId)?.name || "Choose project"}
+          </Text>
+        </TouchableOpacity>
+        {showProjectPicker && (
+          <View className="mt-2 border border-slate-600 rounded-lg bg-slate-800">
+            <TextInput
+              placeholder="Search project"
+              placeholderTextColor="#94a3b8"
+              value={projectSearch}
+              onChangeText={setProjectSearch}
+              className="px-3 py-2 text-slate-100 text-xs border-b border-slate-700"
+            />
+            <ScrollView style={{ maxHeight: 220 }}>
+              {projects
+                .filter((p) => p.name.toLowerCase().includes(projectSearch.toLowerCase()))
+                .map((p) => (
+                  <TouchableOpacity
+                    key={p.id}
+                    onPress={() => {
+                      setSelectedProjectId(p.id);
+                      setShowProjectPicker(false);
+                    }}
+                    className="px-3 py-2"
+                  >
+                    <Text className="text-slate-100 text-xs">{p.name}</Text>
+                  </TouchableOpacity>
+                ))}
+            </ScrollView>
+          </View>
+        )}
       </View>
 
       {error ? (
