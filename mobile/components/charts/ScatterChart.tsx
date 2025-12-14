@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+﻿import React, { useMemo } from "react";
 import { View, Text } from "react-native";
 import Svg, { G, Line, Circle } from "react-native-svg";
 
@@ -26,7 +26,6 @@ export function ScatterChart({
     const maxX = Math.max(...xs, 1);
     const minY = Math.min(...ys, 0);
     const maxY = Math.max(...ys, 1);
-    // small padding
     const padX = (maxX - minX) * 0.05 || 1;
     const padY = (maxY - minY) * 0.05 || 1;
     return {
@@ -39,10 +38,7 @@ export function ScatterChart({
 
   const projectPoint = (p: Point) => {
     const x = padding + ((p.x - xMin) / (xMax - xMin)) * (width - 2 * padding);
-    const y =
-      height -
-      padding -
-      ((p.y - yMin) / (yMax - yMin)) * (height - 2 * padding);
+    const y = height - padding - ((p.y - yMin) / (yMax - yMin)) * (height - 2 * padding);
     return { x, y };
   };
 
@@ -53,53 +49,18 @@ export function ScatterChart({
     <View className="items-center">
       <Svg width={width} height={height}>
         <G>
-          {/* Axes */}
-          <Line
-            x1={padding}
-            y1={height - padding}
-            x2={width - padding}
-            y2={height - padding}
-            stroke="#475569"
-            strokeWidth={1}
-          />
-          <Line
-            x1={padding}
-            y1={height - padding}
-            x2={padding}
-            y2={padding}
-            stroke="#475569"
-            strokeWidth={1}
-          />
-          {/* y = x reference */}
-          <Line
-            x1={diagStart.x}
-            y1={diagStart.y}
-            x2={diagEnd.x}
-            y2={diagEnd.y}
-            stroke="#94a3b8"
-            strokeDasharray="4 4"
-            strokeWidth={1}
-          />
-          {/* Points */}
+          <Line x1={padding} y1={height - padding} x2={width - padding} y2={height - padding} stroke="#475569" strokeWidth={1} />
+          <Line x1={padding} y1={height - padding} x2={padding} y2={padding} stroke="#475569" strokeWidth={1} />
+          <Line x1={diagStart.x} y1={diagStart.y} x2={diagEnd.x} y2={diagEnd.y} stroke="#94a3b8" strokeDasharray="4 4" strokeWidth={1} />
           {points.map((p, idx) => {
             const { x, y } = projectPoint(p);
-            return (
-              <Circle
-                key={idx}
-                cx={x}
-                cy={y}
-                r={4}
-                fill={color}
-                stroke="#0f172a"
-                strokeWidth={1}
-              />
-            );
+            return <Circle key={idx} cx={x} cy={y} r={4} fill={color} stroke="#0f172a" strokeWidth={1} />;
           })}
         </G>
       </Svg>
       <View className="flex-row justify-between w-full px-3 mt-1">
-        <Text className="text-slate-400 text-xs">Predicted fc′</Text>
-        <Text className="text-slate-400 text-xs">Measured fc′</Text>
+        <Text className="text-slate-400 text-xs">Predicted fc'</Text>
+        <Text className="text-slate-400 text-xs">Measured fc'</Text>
       </View>
     </View>
   );

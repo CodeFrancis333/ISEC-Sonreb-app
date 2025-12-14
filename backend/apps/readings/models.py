@@ -34,3 +34,57 @@ class Reading(models.Model):
     def __str__(self):
         label = self.member.member_id if self.member else (self.member_text or "No member")
         return f"{self.project.name} - {label} - {self.estimated_fc:.1f} MPa"
+
+
+class Report(models.Model):
+    project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name="reports")
+    title = models.CharField(max_length=255)
+    folder = models.CharField(max_length=255, blank=True)  # readings folder label
+    date_range = models.CharField(max_length=255, blank=True)
+    company = models.CharField(max_length=255, blank=True)
+    client_name = models.CharField(max_length=255, blank=True)
+    engineer_name = models.CharField(max_length=255, blank=True)
+    engineer_title = models.CharField(max_length=255, blank=True)
+    engineer_license = models.CharField(max_length=255, blank=True)
+    active_model_id = models.CharField(max_length=255, blank=True)
+    notes = models.TextField(blank=True)
+    logo_url = models.CharField(max_length=512, blank=True)
+    signature_url = models.CharField(max_length=512, blank=True)
+    status = models.CharField(
+        max_length=20,
+        choices=[("draft", "Draft"), ("processing", "Processing"), ("ready", "Ready")],
+        default="draft",
+    )
+    pdf_url = models.CharField(max_length=512, blank=True)
+    csv_url = models.CharField(max_length=512, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"Report: {self.title} ({self.project.name})"
+
+
+class ReportPhoto(models.Model):
+    report = models.ForeignKey(Report, on_delete=models.CASCADE, related_name="photos")
+    image_url = models.CharField(max_length=512)
+    caption = models.CharField(max_length=255, blank=True)
+    location_tag = models.CharField(max_length=255, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Photo for {self.report.title}"
+
+
+class ReadingFolder(models.Model):
+    project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name="reading_folders")
+    name = models.CharField(max_length=255)
+    date_range = models.CharField(max_length=255, blank=True)
+    notes = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ("project", "name")
+        ordering = ["name"]
+
+    def __str__(self):
+        return f"{self.project.name} - {self.name}"

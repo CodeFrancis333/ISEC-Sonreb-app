@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Reading
+from .models import Reading, Report, ReportPhoto, ReadingFolder
 
 
 @admin.register(Reading)
@@ -22,3 +22,19 @@ class ReadingAdmin(admin.ModelAdmin):
     ]
     readonly_fields = ["estimated_fc", "rating", "model_used"]
     exclude = ["member"]
+
+
+@admin.register(Report)
+class ReportAdmin(admin.ModelAdmin):
+  list_display = ("title", "project", "folder", "date_range", "created_at")
+  search_fields = ("title", "project__name", "folder")
+
+@admin.register(ReportPhoto)
+class ReportPhotoAdmin(admin.ModelAdmin):
+  list_display = ("report", "caption", "location_tag", "created_at")
+  search_fields = ("report__title", "caption", "location_tag")
+
+@admin.register(ReadingFolder)
+class ReadingFolderAdmin(admin.ModelAdmin):
+  list_display = ("name", "project", "date_range", "created_at")
+  search_fields = ("name", "project__name")

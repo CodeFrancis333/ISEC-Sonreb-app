@@ -17,6 +17,8 @@ Including another URLconf
 from django.contrib import admin
 from django.http import JsonResponse
 from django.urls import path, include
+from django.conf import settings
+from django.conf.urls.static import static
 
 def api_root(request):
     return JsonResponse({"message": "SONREB API is running"})
@@ -30,3 +32,5 @@ urlpatterns = [
     path("api/calibration/", include("apps.calibration.urls")),
 ]
 
+if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

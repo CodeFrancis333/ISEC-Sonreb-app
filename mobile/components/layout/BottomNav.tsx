@@ -1,22 +1,24 @@
 import React from "react";
 import { View, TouchableOpacity, Text } from "react-native";
-import { Link, usePathname } from "expo-router";
+import { Link, usePathname, Href } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 type NavItem = {
-  href: "/" | "/projects" | "/calibration" | "/readings" | "/settings";
+  href: Href;
   label: string;
   icon: string;
   activeIcon: string;
 };
 
 const items: NavItem[] = [
-  { href: "/", label: "Home", icon: "home-outline", activeIcon: "home" },
-  { href: "/projects", label: "Projects", icon: "albums-outline", activeIcon: "albums" },
-  { href: "/calibration", label: "Calibration", icon: "speedometer-outline", activeIcon: "speedometer" },
-  { href: "/readings", label: "Readings", icon: "list-outline", activeIcon: "list" },
-  { href: "/settings", label: "Settings", icon: "settings-outline", activeIcon: "settings" },
+  { href: "/" as Href, label: "Home", icon: "home-outline", activeIcon: "home" },
+  { href: "/projects" as Href, label: "Projects", icon: "albums-outline", activeIcon: "albums" },
+  { href: "/calibration" as Href, label: "Calibration", icon: "speedometer-outline", activeIcon: "speedometer" },
+  { href: "/readings" as Href, label: "Readings", icon: "list-outline", activeIcon: "list" },
+  // Use a distinct document-text icon for the Reports tab so it stands out from Readings.
+  { href: "/reports" as Href, label: "Reports", icon: "document-text-outline", activeIcon: "document-text" },
+  { href: "/settings" as Href, label: "Settings", icon: "settings-outline", activeIcon: "settings" },
 ];
 
 export default function BottomNav() {
@@ -34,12 +36,18 @@ export default function BottomNav() {
         }}
       >
         {items.map((item) => {
+          const hrefStr =
+            typeof item.href === "string"
+              ? item.href
+              : (item.href as any)?.pathname
+              ? String((item.href as any).pathname)
+              : "";
           const isActive =
-            item.href === "/"
+            hrefStr === "/"
               ? pathname === "/" || pathname === "/(main)" // handle grouped root
-              : pathname?.startsWith(item.href);
+              : pathname?.startsWith(hrefStr);
           return (
-            <Link key={item.href} href={item.href} asChild>
+            <Link key={String(item.href)} href={item.href} asChild>
               <TouchableOpacity className="flex-1 items-center py-1 pointer-events-auto">
                 <Ionicons
                   name={(isActive ? item.activeIcon : item.icon) as any}
