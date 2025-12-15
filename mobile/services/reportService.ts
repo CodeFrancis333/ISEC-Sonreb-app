@@ -68,11 +68,12 @@ export async function listReportFolders(token?: string | null): Promise<string[]
 }
 
 export type ReadingFolder = {
-  id: number;
+  id: number | string;
   project: string;
   name: string;
   date_range?: string | null;
   notes?: string | null;
+  derived?: boolean;
 };
 
 export async function listReadingFolders(projectId?: string, token?: string | null): Promise<ReadingFolder[]> {
@@ -81,6 +82,21 @@ export async function listReadingFolders(projectId?: string, token?: string | nu
     method: "GET",
     token: token || undefined,
   });
+}
+
+export type DerivedFolder = {
+  name: string;
+  count: number;
+  project?: string;
+};
+
+export async function listDerivedReadingFolders(projectId: string, token?: string | null): Promise<DerivedFolder[]> {
+  const qs = projectId ? `?project=${projectId}` : "";
+  const res = await apiRequest<{ derived: DerivedFolder[] }>(`/readings/folders/derived/${qs}`, {
+    method: "GET",
+    token: token || undefined,
+  });
+  return res.derived || [];
 }
 
 export async function createReadingFolder(payload: { project: string; name: string; date_range?: string; notes?: string }, token?: string | null) {

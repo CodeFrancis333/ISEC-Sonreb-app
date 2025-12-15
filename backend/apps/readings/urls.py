@@ -13,6 +13,7 @@ from .views import (
     ReportPhotoDetailView,
     ReadingFolderListCreateView,
     ReadingFolderDetailView,
+    ReadingFolderDerivedView,
 )
 
 urlpatterns = [
@@ -23,6 +24,7 @@ urlpatterns = [
     path("reports/export/", ReportExportView.as_view(), name="report-export"),
     path("reports/folders/", ReportFolderListView.as_view(), name="report-folders"),
     path("readings/folders/", ReadingFolderListCreateView.as_view(), name="reading-folders"),
+    path("readings/folders/derived/", ReadingFolderDerivedView.as_view(), name="reading-folders-derived"),
     path("reports/upload/", ReportUploadView.as_view(), name="report-upload"),
     path("reports/summary/", ReportSummaryView.as_view(), name="report-summary"),
     path("reports/photos/", ReportPhotoListCreateView.as_view(), name="report-photo-create"),

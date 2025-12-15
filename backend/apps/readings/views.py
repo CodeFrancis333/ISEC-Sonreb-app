@@ -1,7 +1,7 @@
 # backend/apps/readings/views.py
 from rest_framework import status
 from django.db import models
-from django.db.models import Q
+from django.db.models import Q, Count
 import numpy as np
 from io import BytesIO
 from reportlab.pdfgen import canvas
@@ -322,6 +322,23 @@ class ReadingFolderDetailView(APIView):
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
+class ReadingFolderDerivedView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        project_id = request.query_params.get("project")
+        if not project_id:
+            return Response({"detail": "project is required"}, status=status.HTTP_400_BAD_REQUEST)
+        qs = (
+            Reading.objects.filter(project_id=project_id, project__owner=request.user)
+            .exclude(location_tag__exact="")
+            .values("location_tag")
+            .annotate(count=Count("id"))
+            .order_by("location_tag")
+        )
+        return Response({"derived": list(qs)})
+
+
 class ReportUploadView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -385,13 +402,24 @@ class ReportExportView(APIView):
         if not self._matplotlib_available() or not points:
             return None
         import matplotlib.pyplot as plt
+        import numpy as np
 
         plt.switch_backend("Agg")
         fig, ax = plt.subplots(figsize=(4, 3))
         xs = [p[0] for p in points]
         ys = [p[1] for p in points]
         ax.scatter(xs, ys, c="#34d399", edgecolors="#0f172a")
-        ax.plot([min(xs + ys), max(xs + ys)], [min(xs + ys), max(xs + ys)], "k--", lw=1, alpha=0.5)
+        min_xy, max_xy = min(xs + ys), max(xs + ys)
+        # identity reference
+        ax.plot([min_xy, max_xy], [min_xy, max_xy], "k--", lw=1, alpha=0.5, label="y = x")
+        # regression line
+        if len(xs) >= 2 and len(ys) >= 2:
+            coeffs = np.polyfit(xs, ys, 1)
+            m, b = coeffs[0], coeffs[1]
+            reg_y0 = m * min_xy + b
+            reg_y1 = m * max_xy + b
+            ax.plot([min_xy, max_xy], [reg_y0, reg_y1], color="#60a5fa", lw=1.2, alpha=0.9, label="Regression")
+            ax.legend(fontsize=7)
         ax.set_xlabel("Measured fc'")
         ax.set_ylabel("Predicted fc'")
         buf = io.BytesIO()
@@ -411,6 +439,76 @@ class ReportExportView(APIView):
         ax.hist(values, bins=8, color="#34d399", edgecolor="#0f172a")
         ax.set_xlabel("Estimated fc' (MPa)")
         ax.set_ylabel("Count")
+        buf = io.BytesIO()
+        fig.tight_layout()
+        fig.savefig(buf, format="png")
+        plt.close(fig)
+        buf.seek(0)
+        return ImageReader(buf)
+
+    def _plot_pass_fail(self, passed: int, failed: int):
+        total = passed + failed
+        if not self._matplotlib_available() or total == 0:
+            return None
+        import matplotlib.pyplot as plt
+
+        plt.switch_backend("Agg")
+        fig, ax = plt.subplots(figsize=(3, 2.2))
+        data = [passed, failed]
+        labels = [f"Pass {passed}", f"Fail {failed}"]
+        colors = ["#34d399", "#f87171"]
+        ax.pie(
+            data,
+            labels=labels,
+            colors=colors,
+            autopct=lambda pct: f"{pct:.1f}%",
+            startangle=90,
+            textprops={"fontsize": 8, "color": "#0f172a"},
+        )
+        ax.axis("equal")
+        buf = io.BytesIO()
+        fig.tight_layout()
+        fig.savefig(buf, format="png")
+        plt.close(fig)
+        buf.seek(0)
+        return ImageReader(buf)
+
+    def _plot_warning_breakdown(self, warnings_breakdown: dict):
+        total = sum(warnings_breakdown.values())
+        if not self._matplotlib_available() or total == 0:
+            return None
+        import matplotlib.pyplot as plt
+
+        labels = []
+        data = []
+        colors = []
+        mapping = [
+            ("RH < min", "rh_low", "#fbbf24"),
+            ("RH > max", "rh_high", "#d97706"),
+            ("UPV < min", "upv_low", "#22d3ee"),
+            ("UPV > max", "upv_high", "#0891b2"),
+        ]
+        for label, key, color in mapping:
+            val = warnings_breakdown.get(key, 0)
+            if val > 0:
+                labels.append(f"{label} ({val})")
+                data.append(val)
+                colors.append(color)
+
+        if not data:
+            return None
+
+        plt.switch_backend("Agg")
+        fig, ax = plt.subplots(figsize=(3, 2.2))
+        ax.pie(
+            data,
+            labels=labels,
+            colors=colors,
+            autopct=lambda pct: f"{pct:.1f}%",
+            startangle=90,
+            textprops={"fontsize": 8, "color": "#0f172a"},
+        )
+        ax.axis("equal")
         buf = io.BytesIO()
         fig.tight_layout()
         fig.savefig(buf, format="png")
@@ -513,6 +611,17 @@ class ReportExportView(APIView):
             except ValueError:
                 pass
 
+        # Pass/fail vs design fc using filtered readings
+        pass_fail = {"pass": 0, "fail": 0}
+        pass_pct = fail_pct = None
+        if design_fc:
+            pass_fail["pass"] = readings.filter(estimated_fc__gte=design_fc).count()
+            pass_fail["fail"] = readings.filter(estimated_fc__lt=design_fc).count()
+            total_pf = pass_fail["pass"] + pass_fail["fail"]
+            if total_pf > 0:
+                pass_pct = pass_fail["pass"] / total_pf
+                fail_pct = pass_fail["fail"] / total_pf
+
         # Basic warnings count for out-of-range readings against the active model
         warnings = 0
         warnings_breakdown = {"rh_low": 0, "rh_high": 0, "upv_low": 0, "upv_high": 0}
@@ -577,12 +686,20 @@ class ReportExportView(APIView):
                     ]
                 )
             if project.design_fc:
+                writer.writerow(["Pass/Fail vs design fc", project.design_fc])
+                writer.writerow(["Category", "Count", "Percent"])
                 writer.writerow(
                     [
-                        "Pass vs design",
-                        f"PASS {readings.filter(estimated_fc__gte=project.design_fc).count()}",
-                        f"FAIL {readings.filter(estimated_fc__lt=project.design_fc).count()}",
-                        f"Design fc {project.design_fc}",
+                        "Pass",
+                        pass_fail["pass"],
+                        f"{(pass_pct * 100):.1f}%" if pass_pct is not None else "",
+                    ]
+                )
+                writer.writerow(
+                    [
+                        "Fail",
+                        pass_fail["fail"],
+                        f"{(fail_pct * 100):.1f}%" if fail_pct is not None else "",
                     ]
                 )
             writer.writerow([])
@@ -739,14 +856,38 @@ class ReportExportView(APIView):
         # warnings breakdown line
         if warnings_breakdown:
             y -= 12
+            p.setFont("Helvetica-Bold", 10)
+            p.drawString(72, y, "Warnings breakdown")
+            y -= 12
             p.setFont("Helvetica", 9)
-            p.drawString(
-                72,
-                y,
-                f"RH<min {warnings_breakdown.get('rh_low',0)} | RH>max {warnings_breakdown.get('rh_high',0)} | "
-                f"UPV<min {warnings_breakdown.get('upv_low',0)} | UPV>max {warnings_breakdown.get('upv_high',0)}",
-            )
+            total_warn = max(warnings, 1)
+            rh_low = warnings_breakdown.get("rh_low", 0)
+            rh_high = warnings_breakdown.get("rh_high", 0)
+            upv_low = warnings_breakdown.get("upv_low", 0)
+            upv_high = warnings_breakdown.get("upv_high", 0)
+            rows = [
+                ("RH < min", rh_low),
+                ("RH > max", rh_high),
+                ("UPV < min", upv_low),
+                ("UPV > max", upv_high),
+            ]
+            p.drawString(72, y, "Reason")
+            p.drawString(180, y, "Count")
+            p.drawString(240, y, "Percent")
+            y -= 12
+            for label, val in rows:
+                p.drawString(72, y, label)
+                p.drawString(180, y, str(val))
+                p.drawString(240, y, f"{(val/total_warn)*100:.1f}%")
+                y -= 12
             p.setFont("Helvetica", 10)
+            wb_img = self._plot_warning_breakdown(warnings_breakdown)
+            if wb_img:
+                if y < 150:
+                    p.showPage()
+                    y = height - 72
+                p.drawImage(wb_img, 72, y - 120, width=180, height=120, preserveAspectRatio=True, mask="auto")
+                y -= 130
         # pass/fail badge next to warnings
         if project and project.design_fc:
             passed = readings.filter(estimated_fc__gte=project.design_fc).count()
@@ -758,6 +899,48 @@ class ReportExportView(APIView):
             p.rect(160, y - 10, 120, 12, fill=1, stroke=0)
             p.setFillColorRGB(0, 0, 0)
             p.drawString(162, y, f"Pass {passed} / Fail {failed}")
+            # mini pass/fail bar and percentages
+            y -= 12
+            bar_w = 180
+            bar_h = 8
+            pass_w = int(bar_w * pass_pct)
+            fail_w = bar_w - pass_w
+            p.setFillColorRGB(0.2, 0.8, 0.5)
+            p.rect(72, y - bar_h, pass_w, bar_h, fill=1, stroke=0)
+            p.setFillColorRGB(0.8, 0.3, 0.3)
+            p.rect(72 + pass_w, y - bar_h, fail_w, bar_h, fill=1, stroke=0)
+            p.setFillColorRGB(0, 0, 0)
+            p.setFont("Helvetica", 8)
+            p.drawString(72, y - bar_h - 10, f"Pass {pass_pct*100:.1f}% | Fail {(1-pass_pct)*100:.1f}%")
+            p.setFont("Helvetica", 10)
+            y -= 16
+            # pass/fail table
+            p.setFont("Helvetica-Bold", 10)
+            p.drawString(72, y, "Pass/Fail vs design fc table")
+            y -= 12
+            p.setFont("Helvetica", 9)
+            p.drawString(72, y, "Category")
+            p.drawString(180, y, "Count")
+            p.drawString(250, y, "Percent")
+            y -= 12
+            p.drawString(72, y, "Pass")
+            p.drawString(180, y, str(passed))
+            p.drawString(250, y, f"{pass_pct*100:.1f}%")
+            y -= 12
+            p.drawString(72, y, "Fail")
+            p.drawString(180, y, str(failed))
+            p.drawString(250, y, f"{(1-pass_pct)*100:.1f}%")
+            y -= 16
+            # quality table row
+            p.drawString(72, y, f"Design fc {project.design_fc} MPa -> Pass {passed} ({pass_pct*100:.1f}%) / Fail {failed} ({(1-pass_pct)*100:.1f}%)")
+            y -= 14
+            pf_img = self._plot_pass_fail(passed, failed)
+            if pf_img:
+                if y < 140:
+                    p.showPage()
+                    y = height - 72
+                p.drawImage(pf_img, 72, y - 120, width=180, height=120, preserveAspectRatio=True, mask="auto")
+                y -= 130
         y -= 14
         p.drawString(72, y, f"Total readings: {readings.count()} | Total cores: {cores.count()}")
         y -= 14
@@ -829,37 +1012,52 @@ class ReportExportView(APIView):
             p.drawImage(hist_img, 72, y - 180, width=250, height=180, preserveAspectRatio=True, mask="auto")
             y -= 190
 
-        # Photos (first few thumbnails if available)
+        # Photos grouped by location/tag
         if photos.exists():
             p.setFont("Helvetica-Bold", 12)
-            p.drawString(72, y, "Photos (first few)")
+            p.drawString(72, y, "Photos by Location")
             y -= 16
+            photos_by_loc = {}
+            for ph in photos:
+                key = ph.location_tag or "Unspecified"
+                photos_by_loc.setdefault(key, []).append(ph)
             thumb_w, thumb_h = 120, 80
             gap = 10
-            x = 72
-            for idx, ph in enumerate(photos[:6]):
-                img_reader = self._image_from_url(ph.image_url)
-                if img_reader:
-                    try:
-                        p.drawImage(img_reader, x, y - thumb_h, width=thumb_w, height=thumb_h, preserveAspectRatio=True, mask="auto")
-                        p.setFont("Helvetica", 8)
-                        p.drawString(x, y - thumb_h - 10, (ph.caption or ph.location_tag or "Photo")[:30])
-                        x += thumb_w + gap
-                        if x + thumb_w > width - 72:
-                            x = 72
-                            y -= thumb_h + 24
-                    except Exception:
-                        continue
-            y -= 20
-            # list captions for remaining photos beyond thumbnails
-            remaining = photos.count() - min(photos.count(), 6)
-            if remaining > 0:
-                p.setFont("Helvetica", 10)
-                p.drawString(72, y, f"Additional photos ({remaining}):")
+            for loc, plist in photos_by_loc.items():
+                p.setFont("Helvetica-Bold", 10)
+                p.drawString(72, y, f"Location: {loc}")
                 y -= 14
-                for ph in photos[6:]:
-                    p.drawString(72, y, f"- {ph.caption or ph.location_tag or ph.image_url}")
+                x = 72
+                p.setFont("Helvetica", 8)
+                for ph in plist[:4]:
+                    img_reader = self._image_from_url(ph.image_url)
+                    if img_reader:
+                        try:
+                            p.drawImage(
+                                img_reader,
+                                x,
+                                y - thumb_h,
+                                width=thumb_w,
+                                height=thumb_h,
+                                preserveAspectRatio=True,
+                                mask="auto",
+                            )
+                            p.drawString(x, y - thumb_h - 10, (ph.caption or ph.location_tag or "Photo")[:30])
+                            x += thumb_w + gap
+                            if x + thumb_w > width - 72:
+                                x = 72
+                                y -= thumb_h + 24
+                        except Exception:
+                            continue
+                y -= thumb_h + 16
+                extra = len(plist) - min(len(plist), 4)
+                if extra > 0:
+                    p.setFont("Helvetica", 9)
+                    p.drawString(72, y, f"Additional photos at {loc}: {extra}")
                     y -= 12
+                if y < 120:
+                    p.showPage()
+                    y = height - 72
 
         p.setFont("Helvetica-Bold", 12)
         p.drawString(72, y, "Core Verification (first 5)")
@@ -881,6 +1079,39 @@ class ReportExportView(APIView):
             if y < 100:
                 p.showPage()
                 y = height - 72
+
+        # Field assessment grid (all readings) as a paginated table
+        if readings.exists():
+            p.setFont("Helvetica-Bold", 12)
+            p.drawString(72, y, "Field Assessment Grid")
+            y -= 14
+            def draw_grid_header():
+                nonlocal y
+                p.setFont("Helvetica-Bold", 9)
+                p.drawString(72, y, "ID")
+                p.drawString(110, y, "Location")
+                p.drawString(220, y, "Member")
+                p.drawString(330, y, "R")
+                p.drawString(370, y, "UPV")
+                p.drawString(430, y, "fc est")
+                y -= 12
+                p.setFont("Helvetica", 9)
+            draw_grid_header()
+            for r in readings:
+                if y < 100:
+                    p.showPage()
+                    y = height - 72
+                    p.setFont("Helvetica-Bold", 12)
+                    p.drawString(72, y, "Field Assessment Grid (cont.)")
+                    y -= 14
+                    draw_grid_header()
+                p.drawString(72, y, str(r.id))
+                p.drawString(110, y, (r.location_tag or "-")[:18])
+                p.drawString(220, y, (r.member_text or (r.member.member_id if r.member else "-"))[:14])
+                p.drawString(330, y, f"{r.rh_index or 0:.1f}")
+                p.drawString(370, y, f"{r.upv or 0:.0f}")
+                p.drawString(430, y, f"{r.estimated_fc or 0:.2f}")
+                y -= 12
 
         # Charts (text summary placeholders)
         p.setFont("Helvetica-Bold", 12)
