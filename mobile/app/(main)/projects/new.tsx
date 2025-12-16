@@ -14,12 +14,25 @@ export default function NewProjectScreen() {
   const [location, setLocation] = useState("");
   const [client, setClient] = useState("");
   const [designFc, setDesignFc] = useState("");
+  const [structureAge, setStructureAge] = useState("");
+  const [latitude, setLatitude] = useState("");
+  const [longitude, setLongitude] = useState("");
   const [notes, setNotes] = useState("");
   const [loading, setLoading] = useState(false);
 
   const handleSave = async () => {
-    if (!name || !location) {
-      Alert.alert("Missing fields", "Project name and location are required.");
+    if (!name || !location || !structureAge || !latitude || !longitude) {
+      Alert.alert(
+        "Missing fields",
+        "Project name, location, structure age, latitude, and longitude are required."
+      );
+      return;
+    }
+    const ageNum = parseInt(structureAge, 10);
+    const latNum = parseFloat(latitude);
+    const lonNum = parseFloat(longitude);
+    if (Number.isNaN(ageNum) || Number.isNaN(latNum) || Number.isNaN(lonNum)) {
+      Alert.alert("Invalid numbers", "Enter numeric values for age and coordinates.");
       return;
     }
     try {
@@ -27,6 +40,9 @@ export default function NewProjectScreen() {
       const payload: any = {
         name,
         location,
+        structure_age: ageNum,
+        latitude: latNum,
+        longitude: lonNum,
       };
       if (client) payload.client = client;
       if (designFc) payload.design_fc = parseFloat(designFc);
@@ -74,6 +90,30 @@ export default function NewProjectScreen() {
           value={client}
           onChangeText={setClient}
           placeholder="Client name"
+        />
+
+        <Input
+          label="Structure Age (years)"
+          keyboardType="numeric"
+          value={structureAge}
+          onChangeText={setStructureAge}
+          placeholder="e.g. 12"
+        />
+
+        <Input
+          label="Latitude"
+          keyboardType="numeric"
+          value={latitude}
+          onChangeText={setLatitude}
+          placeholder="e.g. 14.5995"
+        />
+
+        <Input
+          label="Longitude"
+          keyboardType="numeric"
+          value={longitude}
+          onChangeText={setLongitude}
+          placeholder="e.g. 120.9842"
         />
 
         <Input

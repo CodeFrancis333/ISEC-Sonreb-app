@@ -91,6 +91,9 @@ export default function ProjectsListScreen() {
                     <Text className="text-slate-400 text-xs mt-1">
                       {project.location}
                     </Text>
+                    <Text className="text-slate-500 text-[11px] mt-1">
+                      Age: {(project as any).structure_age ?? "--"} yrs · Lat/Long: {(project as any).latitude ?? "--"}, {(project as any).longitude ?? "--"}
+                    </Text>
 
                     <View className="flex-row mt-3 justify-between items-center">
                       <Text className="text-xs text-slate-400">

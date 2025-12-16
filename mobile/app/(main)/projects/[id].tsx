@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from "react";
-import { View, Text, TouchableOpacity, ScrollView, ActivityIndicator, Alert } from "react-native";
+import { View, Text, TouchableOpacity, ScrollView, ActivityIndicator, Alert, Linking } from "react-native";
 import { useLocalSearchParams, Link, useRouter, useFocusEffect, Href } from "expo-router";
 import Screen from "../../../components/layout/Screen";
 import { getProject, Project, listMembers, Member, deleteMember } from "../../../services/projectService";
@@ -265,6 +265,29 @@ export default function ProjectOverviewScreen() {
                   <Text className="text-white text-xl font-semibold">
                     {project?.design_fc ? `${project.design_fc} MPa` : "--"}
                   </Text>
+                </View>
+                <View className="rounded-xl bg-slate-800 p-4">
+                  <Text className="text-slate-300 text-sm mb-1">Structure Info</Text>
+                  <Text className="text-white text-base font-semibold">
+                    Age: {project?.structure_age ?? "--"} years
+                  </Text>
+                  <Text className="text-slate-400 text-xs mt-1">
+                    Lat/Long: {project?.latitude ?? "--"}, {project?.longitude ?? "--"}
+                  </Text>
+                  {project?.latitude !== undefined && project?.longitude !== undefined ? (
+                    <TouchableOpacity
+                      className="mt-2"
+                      onPress={() => {
+                        const lat = project?.latitude;
+                        const lng = project?.longitude;
+                        if (lat !== undefined && lng !== undefined) {
+                          Linking.openURL(`https://maps.google.com/?q=${lat},${lng}`);
+                        }
+                      }}
+                    >
+                      <Text className="text-emerald-300 text-xs">Open in Maps</Text>
+                    </TouchableOpacity>
+                  ) : null}
                 </View>
                 <View className="rounded-xl bg-slate-800 p-4">
                   <Text className="text-slate-300 text-sm mb-1">

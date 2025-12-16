@@ -11,11 +11,19 @@ class ProjectSerializer(serializers.ModelSerializer):
             "name",
             "location",
             "client",
+            "structure_age",
+            "latitude",
+            "longitude",
             "design_fc",
             "notes",
             "created_at",
             "updated_at",
         ]
+        extra_kwargs = {
+            "structure_age": {"required": True},
+            "latitude": {"required": True},
+            "longitude": {"required": True},
+        }
 
 
 class MemberSerializer(serializers.ModelSerializer):

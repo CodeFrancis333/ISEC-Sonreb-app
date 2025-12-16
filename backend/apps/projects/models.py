@@ -12,6 +12,9 @@ class Project(models.Model):
     name = models.CharField(max_length=255)
     location = models.CharField(max_length=255)
     client = models.CharField(max_length=255, blank=True)
+    structure_age = models.PositiveIntegerField(default=0)
+    latitude = models.FloatField(default=0.0)
+    longitude = models.FloatField(default=0.0)
     design_fc = models.FloatField(null=True, blank=True)  # MPa
     notes = models.TextField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)

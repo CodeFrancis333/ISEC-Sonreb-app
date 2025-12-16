@@ -16,6 +16,9 @@ export default function EditProjectScreen() {
   const [location, setLocation] = useState("");
   const [client, setClient] = useState("");
   const [designFc, setDesignFc] = useState("");
+  const [structureAge, setStructureAge] = useState("");
+  const [latitude, setLatitude] = useState("");
+  const [longitude, setLongitude] = useState("");
   const [notes, setNotes] = useState("");
   const [loading, setLoading] = useState(false);
   const [loadingProject, setLoadingProject] = useState(true);
@@ -33,6 +36,9 @@ export default function EditProjectScreen() {
         setLocation((data as any).location || "");
         setClient((data as any).client || "");
         setDesignFc(data.design_fc ? String(data.design_fc) : "");
+        setStructureAge((data as any).structure_age ? String((data as any).structure_age) : "");
+        setLatitude((data as any).latitude !== undefined ? String((data as any).latitude) : "");
+        setLongitude((data as any).longitude !== undefined ? String((data as any).longitude) : "");
         setNotes((data as any).notes || "");
       } catch (err: any) {
         Alert.alert("Load failed", err.message || "Unable to load project.");
@@ -48,8 +54,18 @@ export default function EditProjectScreen() {
       Alert.alert("Missing project", "No project id provided.");
       return;
     }
-    if (!name || !location) {
-      Alert.alert("Missing fields", "Project name and location are required.");
+    if (!name || !location || !structureAge || !latitude || !longitude) {
+      Alert.alert(
+        "Missing fields",
+        "Project name, location, structure age, latitude, and longitude are required."
+      );
+      return;
+    }
+    const ageNum = parseInt(structureAge, 10);
+    const latNum = parseFloat(latitude);
+    const lonNum = parseFloat(longitude);
+    if (Number.isNaN(ageNum) || Number.isNaN(latNum) || Number.isNaN(lonNum)) {
+      Alert.alert("Invalid numbers", "Enter numeric values for age and coordinates.");
       return;
     }
     try {
@@ -57,6 +73,9 @@ export default function EditProjectScreen() {
       const payload: any = {
         name,
         location,
+        structure_age: ageNum,
+        latitude: latNum,
+        longitude: lonNum,
       };
       if (client) payload.client = client;
       if (designFc) payload.design_fc = parseFloat(designFc);
@@ -108,6 +127,30 @@ export default function EditProjectScreen() {
               value={client}
               onChangeText={setClient}
               placeholder="e.g. DPWH"
+            />
+
+            <Input
+              label="Structure Age (years)"
+              keyboardType="numeric"
+              value={structureAge}
+              onChangeText={setStructureAge}
+              placeholder="e.g. 12"
+            />
+
+            <Input
+              label="Latitude"
+              keyboardType="numeric"
+              value={latitude}
+              onChangeText={setLatitude}
+              placeholder="e.g. 14.5995"
+            />
+
+            <Input
+              label="Longitude"
+              keyboardType="numeric"
+              value={longitude}
+              onChangeText={setLongitude}
+              placeholder="e.g. 120.9842"
             />
 
             <Input

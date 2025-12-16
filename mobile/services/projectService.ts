@@ -7,6 +7,9 @@ export type Project = {
   id: string;
   name: string;
   location: string;
+  structure_age: number;
+  latitude: number;
+  longitude: number;
   design_fc?: number;
   status?: ProjectStatus;
 };
@@ -59,6 +62,9 @@ export type CreateProjectPayload = {
   name: string;
   location: string;
   client?: string;
+  structure_age: number;
+  latitude: number;
+  longitude: number;
   design_fc?: number;
   notes?: string;
 };

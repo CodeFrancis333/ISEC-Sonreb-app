@@ -653,6 +653,8 @@ class ReportExportView(APIView):
 
             writer.writerow(["Report", report.title])
             writer.writerow(["Project", report.project.name])
+            writer.writerow(["Structure age (years)", project.structure_age])
+            writer.writerow(["Coordinates", f"{project.latitude}, {project.longitude}"])
             writer.writerow(["Folder", report.folder or ""])
             writer.writerow(["Date Range", report.date_range or ""])
             writer.writerow(["Engineer", report.engineer_name or ""])
@@ -804,6 +806,8 @@ class ReportExportView(APIView):
         y -= 20
         p.setFont("Helvetica", 10)
         p.drawString(72, y, f"Project: {report.project.name}")
+        p.drawString(72, y - 14, f"Age: {project.structure_age} years  |  Lat/Long: {project.latitude}, {project.longitude}")
+        y -= 14
         y -= 14
         if report.folder:
             p.drawString(72, y, f"Folder: {report.folder}")

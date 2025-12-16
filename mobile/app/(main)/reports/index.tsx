@@ -568,6 +568,13 @@ export default function ReportsScreen() {
           <Text className="text-slate-200 text-sm mb-2">Project / Folder Details</Text>
           <Text className="text-slate-400 text-xs">Project: {projects.find((p) => p.id === selectedProjectId)?.name || "N/A"}</Text>
           <Text className="text-slate-400 text-xs">
+            Age: {projects.find((p) => p.id === selectedProjectId)?.structure_age ?? "N/A"} years
+          </Text>
+          <Text className="text-slate-400 text-xs">
+            Lat/Long: {projects.find((p) => p.id === selectedProjectId)?.latitude ?? "N/A"},{" "}
+            {projects.find((p) => p.id === selectedProjectId)?.longitude ?? "N/A"}
+          </Text>
+          <Text className="text-slate-400 text-xs">
             Folder: {folder || "None selected"} {dateRange ? `| Date range: ${dateRange}` : ""}
           </Text>
           <Text className="text-slate-400 text-xs">Active model ID: {activeModel?.id ?? "N/A"}</Text>
