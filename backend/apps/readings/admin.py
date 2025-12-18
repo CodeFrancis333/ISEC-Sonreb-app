@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Reading, Report, ReportPhoto, ReadingFolder
+from .models import Reading, Report, ReportPhoto
 
 
 @admin.register(Reading)
@@ -33,8 +33,3 @@ class ReportAdmin(admin.ModelAdmin):
 class ReportPhotoAdmin(admin.ModelAdmin):
   list_display = ("report", "caption", "location_tag", "created_at")
   search_fields = ("report__title", "caption", "location_tag")
-
-@admin.register(ReadingFolder)
-class ReadingFolderAdmin(admin.ModelAdmin):
-  list_display = ("name", "project", "date_range", "created_at")
-  search_fields = ("name", "project__name")

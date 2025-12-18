@@ -55,6 +55,7 @@ export default function ReportsScreen() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [title, setTitle] = useState("");
   const [folder, setFolder] = useState("");
+  const [folderLabel, setFolderLabel] = useState("");
   const [dateRange, setDateRange] = useState("");
   const [company, setCompany] = useState("");
   const [clientName, setClientName] = useState("");
@@ -110,15 +111,24 @@ export default function ReportsScreen() {
           setFolderOptions([]);
           return;
         }
-        const [readingFolders, derived] = await Promise.all([
-          listReadingFolders(selectedProjectId, token || undefined),
-          listDerivedReadingFolders(selectedProjectId, token || undefined),
-        ]);
+        const readingFolders = await listReadingFolders(selectedProjectId, token || undefined);
+        let derived: any[] = [];
+        try {
+          derived = await listDerivedReadingFolders(selectedProjectId, token || undefined);
+        } catch {
+          derived = [];
+        }
         const merged = [...(readingFolders || [])];
         const existingNames = new Set(merged.map((f) => f.name));
         derived.forEach((d) => {
           if (!existingNames.has(d.name)) {
-            merged.push({ id: `auto-${d.name}`, project: selectedProjectId!, name: d.name, notes: `Auto from location tags (${d.count})`, derived: true });
+            merged.push({
+              id: `auto-${d.name}`,
+              project: selectedProjectId!,
+              name: d.name,
+              notes: `Auto from location tags (${d.count})`,
+              derived: true,
+            });
           }
         });
         setFolderOptions(merged);
@@ -137,11 +147,32 @@ export default function ReportsScreen() {
       setLoading(true);
       setLoadingFolders(true);
       const readingFolders = await listReadingFolders(selectedProjectId, token || undefined);
-      setFolderOptions(readingFolders || []);
+      let derived: any[] = [];
+      try {
+        derived = await listDerivedReadingFolders(selectedProjectId, token || undefined);
+      } catch {
+        derived = [];
+      }
+      const merged = [...(readingFolders || [])];
+      const existingNames = new Set(merged.map((f) => f.name));
+      derived.forEach((d) => {
+        if (!existingNames.has(d.name)) {
+          merged.push({
+            id: `auto-${d.name}`,
+            project: selectedProjectId,
+            name: d.name,
+            notes: `Auto from location tags (${d.count})`,
+            derived: true,
+          });
+        }
+      });
+      setFolderOptions(merged);
       const refreshed = await listReports(selectedProjectId, token || undefined);
       setReports(refreshed);
+      const projectName = projects.find((p) => p.id === selectedProjectId)?.name || "";
+      const folderFilter = folderLabel && folderLabel === projectName ? null : folder || null;
       const sum = await getReportSummary(selectedProjectId, token || undefined, {
-        folder: folder || null,
+        folder: folderFilter,
         filter_element: filterElement || null,
         filter_location: filterLocation || null,
         filter_fc_min: filterFcMin || null,
@@ -205,6 +236,7 @@ export default function ReportsScreen() {
             await deleteReadingFolder(id, token || undefined);
             if (folderOptions.find((f) => f.id === id)?.name === folder) {
               setFolder("");
+              setFolderLabel("");
             }
             await refreshFoldersAndSummary();
           } catch (err: any) {
@@ -246,8 +278,10 @@ export default function ReportsScreen() {
         setReports(data);
         try {
           setLoadingSummary(true);
+          const projectName = projects.find((p) => p.id === selectedProjectId)?.name || "";
+          const folderFilter = folderLabel && folderLabel === projectName ? null : folder || null;
           const sum = await getReportSummary(selectedProjectId, token || undefined, {
-            folder: folder || null,
+            folder: folderFilter,
             filter_element: filterElement || null,
             filter_location: filterLocation || null,
             filter_fc_min: filterFcMin || null,
@@ -285,6 +319,7 @@ export default function ReportsScreen() {
     setEditingId(null);
     setTitle("");
     setFolder("");
+    setFolderLabel("");
     setDateRange("");
     setCompany("");
     setClientName("");
@@ -378,11 +413,13 @@ export default function ReportsScreen() {
     }
     try {
       setLoading(true);
+      const projectName = projects.find((p) => p.id === selectedProjectId)?.name || "";
+      const folderFilter = folderLabel && folderLabel === projectName ? null : folder || null;
       await exportReport(
         {
           report_id: targetId,
           format,
-          folder: folder || null,
+          folder: folderFilter,
           filter_element: filterElement || null,
           filter_location: filterLocation || null,
           filter_fc_min: filterFcMin || null,
@@ -575,7 +612,7 @@ export default function ReportsScreen() {
             {projects.find((p) => p.id === selectedProjectId)?.longitude ?? "N/A"}
           </Text>
           <Text className="text-slate-400 text-xs">
-            Folder: {folder || "None selected"} {dateRange ? `| Date range: ${dateRange}` : ""}
+            Folder: {folderLabel || folder || "None selected"} {dateRange ? `| Date range: ${dateRange}` : ""}
           </Text>
           <Text className="text-slate-400 text-xs">Active model ID: {activeModel?.id ?? "N/A"}</Text>
         </View>
@@ -620,7 +657,7 @@ export default function ReportsScreen() {
             onPress={() => setShowFolderPicker((prev) => !prev)}
             className="border border-slate-600 rounded-lg px-3 py-3 bg-slate-800"
           >
-            <Text className="text-slate-100 text-xs">{folder || "Select or type folder name"}</Text>
+            <Text className="text-slate-100 text-xs">{folderLabel || folder || "Select or type folder name"}</Text>
           </TouchableOpacity>
 
           {showFolderPicker ? (
@@ -633,36 +670,61 @@ export default function ReportsScreen() {
                 className="px-3 py-2 text-slate-100 text-xs border-b border-slate-700"
               />
               <ScrollView style={{ maxHeight: 160 }}>
-                {folderOptions
-                  .filter((f) => (f?.name || "").toLowerCase().includes(folderSearch.toLowerCase()))
-                  .map((f) => (
-                    <TouchableOpacity
-                      key={String(f.id)}
-                      className="px-3 py-2"
-                      onPress={() => {
-                        setFolder(f.name || "");
-                        setShowFolderPicker(false);
-                      }}
-                    >
-                      <Text className="text-slate-100 text-xs">{f.name}</Text>
-                      {f.date_range ? <Text className="text-slate-500 text-[10px]">Dates: {f.date_range}</Text> : null}
-                      {f.notes ? (
-                        <Text className="text-slate-500 text-[10px]" numberOfLines={1}>
-                          {f.notes}
-                        </Text>
-                      ) : null}
-
-                      <TouchableOpacity onPress={() => handleDeleteFolder(f.id)} className="mt-1">
-                        <Text className="text-rose-300 text-[10px]">Delete</Text>
+                {(() => {
+                  const projectName = projects.find((p) => p.id === selectedProjectId)?.name || "";
+                  const combined = [
+                    projectName
+                      ? {
+                          id: `project-${selectedProjectId}`,
+                          name: projectName,
+                          notes: "All readings (project folder)",
+                          derived: true,
+                        }
+                      : null,
+                    ...folderOptions,
+                  ].filter(Boolean) as any[];
+                  const seen = new Set<string>();
+                  return combined
+                    .filter((f) => {
+                      const name = (f?.name || "").toLowerCase();
+                      if (!name.includes(folderSearch.toLowerCase())) return false;
+                      if (seen.has(name)) return false;
+                      seen.add(name);
+                      return true;
+                    })
+                    .map((f) => (
+                      <TouchableOpacity
+                        key={String(f.id)}
+                        className="px-3 py-2"
+                        onPress={() => {
+                          const isProjectFolder = String(f.id).startsWith("project-");
+                          setFolder(isProjectFolder ? "" : f.name || "");
+                          setFolderLabel(f.name || "");
+                          setShowFolderPicker(false);
+                        }}
+                      >
+                        <Text className="text-slate-100 text-xs">{f.name}</Text>
+                        {f.date_range ? <Text className="text-slate-500 text-[10px]">Dates: {f.date_range}</Text> : null}
+                        {f.notes ? (
+                          <Text className="text-slate-500 text-[10px]" numberOfLines={1}>
+                            {f.notes}
+                          </Text>
+                        ) : null}
+                        {!String(f.id).startsWith("project-") && !String(f.id).startsWith("auto-") ? (
+                          <TouchableOpacity onPress={() => handleDeleteFolder(f.id)} className="mt-1">
+                            <Text className="text-rose-300 text-[10px]">Delete</Text>
+                          </TouchableOpacity>
+                        ) : null}
                       </TouchableOpacity>
-                    </TouchableOpacity>
-                  ))}
+                    ));
+                })()}
               </ScrollView>
 
               <TouchableOpacity
                 className="px-3 py-2 border-t border-slate-700"
                 onPress={() => {
                   setFolder(folderSearch);
+                  setFolderLabel(folderSearch);
                   setShowFolderPicker(false);
                 }}
               >
@@ -671,24 +733,9 @@ export default function ReportsScreen() {
             </View>
           ) : null}
 
-          <View className="mt-3">
-            <Text className="text-slate-200 text-sm mb-1">Create Folder</Text>
-            <Input label="Name" value={newFolderName} onChangeText={setNewFolderName} placeholder="e.g. Grid A North" />
-            <Input label="Date Range" value={newFolderDate} onChangeText={setNewFolderDate} placeholder="e.g. Dec 1–10, 2025" />
-            <Input label="Notes" value={newFolderNotes} onChangeText={setNewFolderNotes} placeholder="Folder notes" />
-            <Button title={loadingFolders ? "Saving..." : "Save Folder"} onPress={handleCreateFolder} disabled={loadingFolders} />
-          </View>
-
           <Input label="Date Range" value={dateRange} onChangeText={setDateRange} placeholder="e.g. Dec 1–10, 2025" />
           <Input label="Company / Project By" value={company} onChangeText={setCompany} placeholder="e.g. ACME Testing" />
           <Input label="Client Name" value={clientName} onChangeText={setClientName} placeholder="Client name" />
-          <Input label="Company Logo URL" value={logoUrl} onChangeText={setLogoUrl} placeholder="https://example.com/logo.png" />
-          <Input
-            label="Signature Image URL"
-            value={signatureUrl}
-            onChangeText={setSignatureUrl}
-            placeholder="https://example.com/signature.png"
-          />
           <Input label="Report Notes (optional)" value={notes} onChangeText={setNotes} placeholder="Notes" />
 
           <Text className="text-slate-200 text-sm mt-3 mb-2">Engineer Sign-off</Text>
@@ -763,6 +810,13 @@ export default function ReportsScreen() {
               <Text className="text-slate-100 text-xs">
                 Mean fc: {summary.summary?.mean_estimated_fc ? summary.summary.mean_estimated_fc.toFixed(2) : "N/A"} MPa
               </Text>
+              <Text className="text-slate-100 text-xs">
+                Design fc: {summary.summary?.design_fc ?? "N/A"} MPa • Δ{" "}
+                {summary.summary?.design_fc && summary.summary?.mean_estimated_fc
+                  ? (summary.summary.mean_estimated_fc - summary.summary.design_fc).toFixed(2)
+                  : "N/A"}{" "}
+                MPa
+              </Text>
 
               <Text className="text-slate-100 text-xs">
                 Quality: GOOD {summary.summary?.quality?.good ?? 0} | FAIR {summary.summary?.quality?.fair ?? 0} | POOR{" "}
@@ -784,6 +838,14 @@ export default function ReportsScreen() {
                   </Text>
                 </View>
               </View>
+              {summary.summary?.warnings_breakdown ? (
+                <Text className="text-slate-500 text-[10px] mt-1">
+                  RH&lt;min {summary.summary.warnings_breakdown.rh_low ?? 0} | RH&gt;max{" "}
+                  {summary.summary.warnings_breakdown.rh_high ?? 0} | UPV&lt;min{" "}
+                  {summary.summary.warnings_breakdown.upv_low ?? 0} | UPV&gt;max{" "}
+                  {summary.summary.warnings_breakdown.upv_high ?? 0}
+                </Text>
+              ) : null}
 
               <View className="mt-2">
                 <Text className="text-slate-100 text-xs mb-1">
@@ -808,6 +870,9 @@ export default function ReportsScreen() {
 
                 <Text className="text-slate-400 text-[11px] mt-1">
                   PASS {summary.summary?.pass_fail?.pass ?? 0} | FAIL {summary.summary?.pass_fail?.fail ?? 0}
+                </Text>
+                <Text className="text-slate-500 text-[10px]">
+                  Pass = estimated fc ≥ design fc. Fail = estimated fc &lt; design fc.
                 </Text>
 
                 {summary.summary?.pass_pct !== undefined && summary.summary?.fail_pct !== undefined ? (
@@ -866,6 +931,12 @@ export default function ReportsScreen() {
                   <Text className="text-slate-400 text-[10px]">
                     UPV&lt;min {summary.summary.warnings_breakdown.upv_low ?? 0} | UPV&gt;max{" "}
                     {summary.summary.warnings_breakdown.upv_high ?? 0}
+                  </Text>
+                  <Text className="text-slate-500 text-[10px] mt-1">
+                    {summary.summary.warnings_breakdown.rh_low ? "• RH below min range\n" : ""}
+                    {summary.summary.warnings_breakdown.rh_high ? "• RH above max range\n" : ""}
+                    {summary.summary.warnings_breakdown.upv_low ? "• UPV below min range\n" : ""}
+                    {summary.summary.warnings_breakdown.upv_high ? "• UPV above max range" : ""}
                   </Text>
                 </View>
               ) : null}
@@ -1178,6 +1249,7 @@ export default function ReportsScreen() {
                         setEditingId(r.id);
                         setTitle(r.title);
                         setFolder(r.folder || "");
+                        setFolderLabel(r.folder || "");
                         setDateRange(r.date_range || "");
                         setCompany(r.company || "");
                         setClientName(r.client_name || "");

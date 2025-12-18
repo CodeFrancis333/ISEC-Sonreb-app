@@ -152,8 +152,32 @@ class ReadingDetailView(APIView):
 
         serializer = ReadingSerializer(reading, data=request.data, partial=True)
         if serializer.is_valid():
-            serializer.save()
-        return Response(serializer.data)
+            validated = serializer.validated_data
+            project = validated.get("project", reading.project)
+            if project.owner != request.user:
+                return Response(status=status.HTTP_403_FORBIDDEN)
+            upv = validated.get("upv", reading.upv)
+            rh_index = validated.get("rh_index", reading.rh_index)
+            carbonation_depth = validated.get("carbonation_depth", reading.carbonation_depth)
+            try:
+                estimated_fc, model_used = compute_estimated_fc(
+                    project=project,
+                    upv=upv,
+                    rh_index=rh_index,
+                    carbonation_depth=carbonation_depth,
+                )
+            except ValueError as exc:
+                return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+
+            rating = get_rating(estimated_fc, project.design_fc)
+            serializer.save(
+                project=project,
+                estimated_fc=estimated_fc,
+                rating=rating,
+                model_used=model_used,
+            )
+            return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 class ReportListCreateView(APIView):

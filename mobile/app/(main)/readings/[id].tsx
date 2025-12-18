@@ -1,6 +1,7 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { Text, ScrollView, View, ActivityIndicator } from "react-native";
 import { useLocalSearchParams } from "expo-router";
+import { useFocusEffect } from "@react-navigation/native";
 import Screen from "../../../components/layout/Screen";
 import { getReading, Reading } from "../../../services/readingService";
 import { getProject, listMembers, Member } from "../../../services/projectService";
@@ -35,38 +36,47 @@ export default function ReadingDetailScreen() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    async function load() {
-      if (!id) return;
-      try {
-        setLoading(true);
-        const data = await getReading(id, token || undefined);
-        setReading(data);
+  const load = useCallback(async () => {
+    if (!id) return;
+    try {
+      setLoading(true);
+      const data = await getReading(id, token || undefined);
+      setReading(data);
 
-        getProject(data.project, token || undefined)
-          .then((p) => setProjectName(p.name))
+      getProject(data.project, token || undefined)
+        .then((p) => setProjectName(p.name))
+        .catch(() => {});
+
+      if (data.member) {
+        listMembers(data.project, token || undefined)
+          .then((members) => {
+            const m = members.find((x: Member) => String(x.id) === String(data.member));
+            if (m) setMemberName(m.member_id);
+          })
           .catch(() => {});
-
-        if (data.member) {
-          listMembers(data.project, token || undefined)
-            .then((members) => {
-              const m = members.find((x: Member) => String(x.id) === String(data.member));
-              if (m) setMemberName(m.member_id);
-            })
-            .catch(() => {});
-        }
-
-        getActiveModel(data.project, token || undefined)
-          .then((m) => setModel(m))
-          .catch(() => {});
-      } catch (err: any) {
-        setError(err?.message || "Unable to load reading.");
-      } finally {
-        setLoading(false);
+      } else {
+        setMemberName("");
       }
+
+      getActiveModel(data.project, token || undefined)
+        .then((m) => setModel(m))
+        .catch(() => {});
+    } catch (err: any) {
+      setError(err?.message || "Unable to load reading.");
+    } finally {
+      setLoading(false);
     }
-    load();
   }, [id, token]);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  useFocusEffect(
+    useCallback(() => {
+      load();
+    }, [load])
+  );
 
   const memberLabel =
     memberName ||

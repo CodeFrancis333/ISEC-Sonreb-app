@@ -60,7 +60,7 @@ export type UpdateReportPhotoPayload = {
 };
 
 export async function listReportFolders(token?: string | null): Promise<string[]> {
-  const res = await apiRequest<{ folders: string[] }>("/reports/folders/", {
+  const res = await apiRequest<{ folders: string[] }>("/readings/reports/folders/", {
     method: "GET",
     token: token || undefined,
   });
@@ -78,7 +78,7 @@ export type ReadingFolder = {
 
 export async function listReadingFolders(projectId?: string, token?: string | null): Promise<ReadingFolder[]> {
   const qs = projectId ? `?project=${projectId}` : "";
-  return apiRequest<ReadingFolder[]>(`/folders/${qs}`, {
+  return apiRequest<ReadingFolder[]>(`/readings/folders/${qs}`, {
     method: "GET",
     token: token || undefined,
   });
@@ -92,7 +92,7 @@ export type DerivedFolder = {
 
 export async function listDerivedReadingFolders(projectId: string, token?: string | null): Promise<DerivedFolder[]> {
   const qs = projectId ? `?project=${projectId}` : "";
-  const res = await apiRequest<{ derived: DerivedFolder[] }>(`/readings/folders/derived/${qs}`, {
+  const res = await apiRequest<{ derived: DerivedFolder[] }>(`/readings/readings/folders/derived/${qs}`, {
     method: "GET",
     token: token || undefined,
   });
@@ -100,7 +100,7 @@ export async function listDerivedReadingFolders(projectId: string, token?: strin
 }
 
 export async function createReadingFolder(payload: { project: string; name: string; date_range?: string; notes?: string }, token?: string | null) {
-  return apiRequest(`/folders/`, {
+  return apiRequest(`/readings/folders/`, {
     method: "POST",
     body: payload,
     token: token || undefined,
@@ -108,7 +108,7 @@ export async function createReadingFolder(payload: { project: string; name: stri
 }
 
 export async function deleteReadingFolder(id: number, token?: string | null) {
-  return apiRequest(`/folders/${id}/`, {
+  return apiRequest(`/readings/folders/${id}/`, {
     method: "DELETE",
     token: token || undefined,
   });
@@ -116,7 +116,7 @@ export async function deleteReadingFolder(id: number, token?: string | null) {
 
 export async function listReports(projectId?: string, token?: string | null): Promise<Report[]> {
   const qs = projectId ? `?project=${projectId}` : "";
-  return apiRequest<Report[]>(`/reports/${qs}`, {
+  return apiRequest<Report[]>(`/readings/reports/${qs}`, {
     method: "GET",
     token: token || undefined,
   });
@@ -142,14 +142,14 @@ export async function getReportSummary(
   }
 ): Promise<any> {
   const qs = buildQuery({ project: projectId, ...(filters || {}) });
-  return apiRequest(`/reports/summary/${qs}`, {
+  return apiRequest(`/readings/reports/summary/${qs}`, {
     method: "GET",
     token: token || undefined,
   });
 }
 
 export async function createReport(payload: CreateReportPayload, token?: string | null): Promise<Report> {
-  return apiRequest<Report>("/reports/", {
+  return apiRequest<Report>("/readings/reports/", {
     method: "POST",
     body: payload,
     token: token || undefined,
@@ -161,7 +161,7 @@ export async function updateReport(
   payload: Partial<CreateReportPayload>,
   token?: string | null
 ): Promise<Report> {
-  return apiRequest<Report>(`/reports/${id}/`, {
+  return apiRequest<Report>(`/readings/reports/${id}/`, {
     method: "PATCH",
     body: payload,
     token: token || undefined,
@@ -169,14 +169,14 @@ export async function updateReport(
 }
 
 export async function deleteReport(id: string, token?: string | null): Promise<void> {
-  return apiRequest<void>(`/reports/${id}/`, {
+  return apiRequest<void>(`/readings/reports/${id}/`, {
     method: "DELETE",
     token: token || undefined,
   });
 }
 
 export async function exportReport(payload: ExportReportPayload, token?: string | null): Promise<Blob | any> {
-  return apiRequest(`/reports/export/`, {
+  return apiRequest(`/readings/reports/export/`, {
     method: "POST",
     body: payload,
     token: token || undefined,
@@ -184,7 +184,7 @@ export async function exportReport(payload: ExportReportPayload, token?: string 
 }
 
 export async function uploadReportPhoto(payload: ReportPhotoPayload, token?: string | null): Promise<any> {
-  return apiRequest(`/reports/photos/`, {
+  return apiRequest(`/readings/reports/photos/`, {
     method: "POST",
     body: payload,
     token: token || undefined,
@@ -192,7 +192,7 @@ export async function uploadReportPhoto(payload: ReportPhotoPayload, token?: str
 }
 
 export async function deleteReportPhoto(photoId: string, token?: string | null): Promise<void> {
-  return apiRequest<void>(`/reports/photos/${photoId}/`, {
+  return apiRequest<void>(`/readings/reports/photos/${photoId}/`, {
     method: "DELETE",
     token: token || undefined,
   });
@@ -203,7 +203,7 @@ export async function updateReportPhoto(
   payload: UpdateReportPhotoPayload,
   token?: string | null
 ): Promise<any> {
-  return apiRequest(`/reports/photos/${photoId}/`, {
+  return apiRequest(`/readings/reports/photos/${photoId}/`, {
     method: "PATCH",
     body: payload,
     token: token || undefined,
@@ -226,7 +226,7 @@ export async function uploadReportFile(
   // file should be a blob with name/type set by caller
   formData.append("file", file as any);
 
-  return apiRequest(`/reports/upload/`, {
+  return apiRequest(`/readings/reports/upload/`, {
     method: "POST",
     body: formData,
     token: token || undefined,

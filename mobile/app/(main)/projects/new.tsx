@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Text, ScrollView, Alert, View, TouchableOpacity, Modal } from "react-native";
 import { useRouter } from "expo-router";
 import Screen from "../../../components/layout/Screen";
@@ -22,10 +22,16 @@ export default function NewProjectScreen() {
   const [pendingLat, setPendingLat] = useState<number | null>(null);
   const [pendingLng, setPendingLng] = useState<number | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
-  const [searchResults, setSearchResults] = useState<any[]>([]);
   const [searching, setSearching] = useState(false);
   const [resolvedAddress, setResolvedAddress] = useState("");
   const [searchError, setSearchError] = useState("");
+  const [mapRegion, setMapRegion] = useState({
+    latitude: 14.5995,
+    longitude: 120.9842,
+    latitudeDelta: 0.05,
+    longitudeDelta: 0.05,
+  });
+  const mapRef = useRef<any>(null);
   const [notes, setNotes] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -65,6 +71,31 @@ export default function NewProjectScreen() {
       setLoading(false);
     }
   };
+
+  const animateMapTo = (lat: number, lon: number) => {
+    mapRef.current?.animateToRegion(
+      {
+        latitude: lat,
+        longitude: lon,
+        latitudeDelta: mapRegion.latitudeDelta,
+        longitudeDelta: mapRegion.longitudeDelta,
+      },
+      450
+    );
+  };
+
+  useEffect(() => {
+    if (!showMapPicker) return;
+    if (pendingLat !== null && pendingLng !== null) {
+      animateMapTo(pendingLat, pendingLng);
+    } else if (latitude && longitude) {
+      const lat = parseFloat(latitude);
+      const lon = parseFloat(longitude);
+      if (!Number.isNaN(lat) && !Number.isNaN(lon)) {
+        animateMapTo(lat, lon);
+      }
+    }
+  }, [showMapPicker, pendingLat, pendingLng, latitude, longitude]);
 
   return (
     <Screen>
@@ -127,8 +158,10 @@ export default function NewProjectScreen() {
         <View className="flex-row gap-2 mb-2">
           <TouchableOpacity
             onPress={() => {
-              setPendingLat(latitude ? parseFloat(latitude) : null);
-              setPendingLng(longitude ? parseFloat(longitude) : null);
+              const lat = latitude ? parseFloat(latitude) : null;
+              const lon = longitude ? parseFloat(longitude) : null;
+              setPendingLat(lat);
+              setPendingLng(lon);
               setShowMapPicker(true);
             }}
             className="px-3 py-2 rounded-lg bg-slate-700"
@@ -136,25 +169,26 @@ export default function NewProjectScreen() {
             <Text className="text-emerald-300 text-xs">Pick on map</Text>
           </TouchableOpacity>
           <TouchableOpacity
-            onPress={async () => {
-              try {
-                const { status } = await Location.requestForegroundPermissionsAsync();
-                if (status !== "granted") {
-                  Alert.alert("Permission denied", "Location permission is required to use this shortcut.");
-                  return;
+                onPress={async () => {
+                  try {
+                    const { status } = await Location.requestForegroundPermissionsAsync();
+                    if (status !== "granted") {
+                      Alert.alert("Permission denied", "Location permission is required to use this shortcut.");
+                      return;
                 }
                 const current = await Location.getCurrentPositionAsync({});
-                const lat = current.coords.latitude;
-                const lon = current.coords.longitude;
-                setLatitude(String(lat));
-                setLongitude(String(lon));
-                setPendingLat(lat);
-                setPendingLng(lon);
-                // optional reverse geocode
-                try {
-                  const resp = await fetch(
-                    `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lon}`
-                  );
+                    const lat = current.coords.latitude;
+                    const lon = current.coords.longitude;
+                    setLatitude(String(lat));
+                    setLongitude(String(lon));
+                    setPendingLat(lat);
+                    setPendingLng(lon);
+                    animateMapTo(lat, lon);
+                    // optional reverse geocode
+                    try {
+                      const resp = await fetch(
+                        `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lon}`
+                      );
                   const data = await resp.json();
                   if (data?.display_name) {
                     setResolvedAddress(data.display_name);
@@ -213,15 +247,30 @@ export default function NewProjectScreen() {
                     try {
                       setSearching(true);
                       setSearchError("");
-                      const q = encodeURIComponent(searchQuery.trim());
-                      const resp = await fetch(
-                        `https://nominatim.openstreetmap.org/search?format=json&q=${q}&limit=5`
-                      );
-                      const data = await resp.json();
-                      setSearchResults(data || []);
+                      const results = await Location.geocodeAsync(searchQuery.trim());
+                      if (results.length) {
+                        const first = results[0];
+                        const lat = first.latitude;
+                        const lon = first.longitude;
+                        setPendingLat(lat);
+                        setPendingLng(lon);
+                        setLatitude(String(lat));
+                        setLongitude(String(lon));
+                        animateMapTo(lat, lon);
+                        try {
+                          const reverse = await Location.reverseGeocodeAsync({ latitude: lat, longitude: lon });
+                          if (reverse.length) {
+                            const r = reverse[0];
+                            const label = [r.name, r.street, r.city, r.region, r.country].filter(Boolean).join(", ");
+                            setResolvedAddress(label);
+                          }
+                        } catch {
+                          setResolvedAddress("");
+                        }
+                      } else {
+                        setSearchError("No results found. Try a different address.");
+                      }
                     } catch (err) {
-                      Alert.alert("Search failed", "Unable to fetch address suggestions.");
-                      setSearchResults([]);
                       setSearchError("Offline or geocoder unavailable. Please enter coordinates manually.");
                     } finally {
                       setSearching(false);
@@ -232,34 +281,6 @@ export default function NewProjectScreen() {
                   <Text className="text-emerald-300 text-xs">{searching ? "Searching..." : "Search"}</Text>
                 </TouchableOpacity>
               </View>
-              {searchResults.length ? (
-                <View className="mt-2 border border-slate-700 rounded-lg max-h-36">
-                  <ScrollView>
-                    {searchResults.map((r, idx) => (
-                      <TouchableOpacity
-                        key={`${r.place_id || idx}`}
-                        className="px-3 py-2 border-b border-slate-800"
-                        onPress={() => {
-                          const lat = parseFloat(r.lat);
-                          const lon = parseFloat(r.lon);
-                          if (!Number.isNaN(lat) && !Number.isNaN(lon)) {
-                            setPendingLat(lat);
-                            setPendingLng(lon);
-                            setLatitude(String(lat));
-                            setLongitude(String(lon));
-                            setResolvedAddress(r.display_name || "");
-                          }
-                          setSearchQuery(r.display_name || "");
-                        }}
-                      >
-                        <Text className="text-slate-100 text-xs" numberOfLines={2}>
-                          {r.display_name || "Result"}
-                        </Text>
-                      </TouchableOpacity>
-                    ))}
-                  </ScrollView>
-                </View>
-              ) : null}
               {searchError ? (
                 <Text className="text-rose-300 text-[11px] mt-1">{searchError}</Text>
               ) : null}
@@ -270,42 +291,38 @@ export default function NewProjectScreen() {
                   // eslint-disable-next-line @typescript-eslint/no-var-requires
                   const Maps = require("react-native-maps");
                   const MapView = Maps.default;
-                  const Marker = Maps.Marker;
-                  const lat = pendingLat ?? 14.5995;
-                  const lng = pendingLng ?? 120.9842;
                   return (
-                    <MapView
-                      style={{ flex: 1 }}
-                      initialRegion={{
-                        latitude: lat,
-                        longitude: lng,
-                        latitudeDelta: 0.05,
-                        longitudeDelta: 0.05,
-                      }}
-                      onPress={(e: any) => {
-                        const tappedLat = e.nativeEvent.coordinate.latitude;
-                        const tappedLng = e.nativeEvent.coordinate.longitude;
-                        setPendingLat(tappedLat);
-                        setPendingLng(tappedLng);
-                        (async () => {
-                          try {
-                            const resp = await fetch(
-                              `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${tappedLat}&lon=${tappedLng}`
-                            );
-                            const data = await resp.json();
-                            if (data?.display_name) {
-                              setResolvedAddress(data.display_name);
-                            }
-                          } catch {
-                            setResolvedAddress("");
-                          }
-                        })();
-                      }}
-                    >
-                      {pendingLat !== null && pendingLng !== null ? (
-                        <Marker coordinate={{ latitude: pendingLat, longitude: pendingLng }} />
-                      ) : null}
-                    </MapView>
+                    <View style={{ flex: 1 }}>
+                      <MapView
+                        style={{ flex: 1 }}
+                        ref={mapRef}
+                        initialRegion={mapRegion}
+                        showsUserLocation={false}
+                        followsUserLocation={false}
+                        showsMyLocationButton={false}
+                        onRegionChangeComplete={(region: any) => {
+                          setMapRegion(region);
+                          setPendingLat(region.latitude);
+                          setPendingLng(region.longitude);
+                        }}
+                      />
+                      <View
+                        pointerEvents="none"
+                        style={{
+                          position: "absolute",
+                          top: "50%",
+                          left: "50%",
+                          marginLeft: -8,
+                          marginTop: -8,
+                          width: 16,
+                          height: 16,
+                          borderRadius: 8,
+                          borderWidth: 2,
+                          borderColor: "#34d399",
+                          backgroundColor: "rgba(52, 211, 153, 0.2)",
+                        }}
+                      />
+                    </View>
                   );
                 } catch (err) {
                   return (
@@ -330,6 +347,21 @@ export default function NewProjectScreen() {
                   if (pendingLat !== null && pendingLng !== null) {
                     setLatitude(String(pendingLat));
                     setLongitude(String(pendingLng));
+                    (async () => {
+                      try {
+                        const reverse = await Location.reverseGeocodeAsync({
+                          latitude: pendingLat,
+                          longitude: pendingLng,
+                        });
+                        if (reverse.length) {
+                          const r = reverse[0];
+                          const label = [r.name, r.street, r.city, r.region, r.country].filter(Boolean).join(", ");
+                          setResolvedAddress(label);
+                        }
+                      } catch {
+                        setResolvedAddress("");
+                      }
+                    })();
                   }
                   setShowMapPicker(false);
                 }}

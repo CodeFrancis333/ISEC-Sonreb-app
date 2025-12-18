@@ -1,5 +1,6 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Alert, TextInput } from "react-native";
+import { useFocusEffect } from "@react-navigation/native";
 import { Link, useRouter } from "expo-router";
 import Screen from "../../../components/layout/Screen";
 import { listReadings, listReadingsByProject, deleteReading, Reading } from "../../../services/readingService";
@@ -39,29 +40,36 @@ export default function AllReadingsListScreen() {
     loadProjects();
   }, [token]);
 
-  useEffect(() => {
-    async function loadReadings() {
-      if (!selectedProjectId) {
-        setReadings([]);
+  const loadReadings = useCallback(async () => {
+    if (!selectedProjectId) {
+      setReadings([]);
+      return;
+    }
+    try {
+      setLoading(true);
+      const data = await listReadingsByProject(selectedProjectId, token || undefined);
+      setReadings(data);
+    } catch (err: any) {
+      if (err?.status === 401 || err?.status === 403) {
+        await useAuthStore.getState().clearAuth();
+        router.replace("/(auth)/login");
         return;
       }
-      try {
-        setLoading(true);
-        const data = await listReadingsByProject(selectedProjectId, token || undefined);
-        setReadings(data);
-      } catch (err: any) {
-        if (err?.status === 401 || err?.status === 403) {
-          await useAuthStore.getState().clearAuth();
-          router.replace("/(auth)/login");
-          return;
-        }
-        setError(err.message || "Unable to load readings.");
-      } finally {
-        setLoading(false);
-      }
+      setError(err.message || "Unable to load readings.");
+    } finally {
+      setLoading(false);
     }
-    loadReadings();
   }, [selectedProjectId, token, router]);
+
+  useEffect(() => {
+    loadReadings();
+  }, [loadReadings]);
+
+  useFocusEffect(
+    useCallback(() => {
+      loadReadings();
+    }, [loadReadings])
+  );
 
   return (
     <Screen showNav>
@@ -174,6 +182,7 @@ export default function AllReadingsListScreen() {
                         id: reading.id,
                         projectId: (reading as any).project || "",
                         memberId: (reading as any).member || "",
+                        memberText: (reading as any).member_text || "",
                         upv: String(reading.upv),
                         rh: String(reading.rh_index),
                         carbonation:

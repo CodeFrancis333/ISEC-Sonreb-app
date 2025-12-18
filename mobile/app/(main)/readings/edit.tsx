@@ -15,6 +15,7 @@ export default function EditReadingScreen() {
     id?: string;
     projectId?: string;
     memberId?: string;
+    memberText?: string;
     upv?: string;
     rh?: string;
     carbonation?: string;
@@ -25,7 +26,11 @@ export default function EditReadingScreen() {
 
   const [projects, setProjects] = useState<Project[]>([]);
   const [projectId, setProjectId] = useState<string | null>(params.projectId ? String(params.projectId) : null);
-  const [memberText, setMemberText] = useState<string>("");
+  const initialMemberText =
+    params.memberText ||
+    (params.memberId && isNaN(Number(params.memberId)) ? String(params.memberId) : "") ||
+    "";
+  const [memberText, setMemberText] = useState<string>(initialMemberText);
   const [locationTag, setLocationTag] = useState(params.location_tag ? String(params.location_tag) : "");
   const [upv, setUpv] = useState(params.upv ? String(params.upv) : "");
   const [rh, setRh] = useState(params.rh ? String(params.rh) : "");
@@ -58,6 +63,12 @@ export default function EditReadingScreen() {
     }
     loadProjects();
   }, [projectId, token]);
+
+  useEffect(() => {
+    if (!memberText && params.memberText) {
+      setMemberText(String(params.memberText));
+    }
+  }, [memberText, params.memberText]);
 
   const handleSave = async () => {
     if (!readingId) {
