@@ -25,6 +25,7 @@ export default function EditProjectScreen() {
   const [pendingLng, setPendingLng] = useState<number | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [searching, setSearching] = useState(false);
+  const [searchResults, setSearchResults] = useState<any[]>([]);
   const [resolvedAddress, setResolvedAddress] = useState("");
   const [searchError, setSearchError] = useState("");
   const [mapRegion, setMapRegion] = useState({
@@ -294,31 +295,42 @@ export default function EditProjectScreen() {
                     try {
                       setSearching(true);
                       setSearchError("");
-                      const results = await Location.geocodeAsync(searchQuery.trim());
+                      setSearchResults([]);
+                      const resp = await fetch(
+                        `https://nominatim.openstreetmap.org/search?format=jsonv2&limit=5&addressdetails=1&q=${encodeURIComponent(
+                          searchQuery.trim()
+                        )}&email=sonreb.app@example.com`,
+                        {
+                          headers: {
+                            Accept: "application/json",
+                            "Accept-Language": "en",
+                            "User-Agent": "sonreb-app/1.0 (contact: sonreb.app@example.com)",
+                          },
+                        }
+                      );
+                      if (!resp.ok) {
+                        const bodyText = await resp.text();
+                        throw new Error(
+                          `Geocode failed (${resp.status}): ${bodyText.slice(0, 200)}`
+                        );
+                      }
+                      const results = await resp.json();
                       if (results.length) {
+                        setSearchResults(results);
                         const first = results[0];
-                        const lat = first.latitude;
-                        const lon = first.longitude;
+                        const lat = parseFloat(first.lat);
+                        const lon = parseFloat(first.lon);
                         setPendingLat(lat);
                         setPendingLng(lon);
                         setLatitude(String(lat));
                         setLongitude(String(lon));
                         animateMapTo(lat, lon);
-                        try {
-                          const reverse = await Location.reverseGeocodeAsync({ latitude: lat, longitude: lon });
-                          if (reverse.length) {
-                            const r = reverse[0];
-                            const label = [r.name, r.street, r.city, r.region, r.country].filter(Boolean).join(", ");
-                            setResolvedAddress(label);
-                          }
-                        } catch {
-                          setResolvedAddress("");
-                        }
+                        setResolvedAddress(first.display_name || "");
                       } else {
                         setSearchError("No results found. Try a different address.");
                       }
-                    } catch (err) {
-                      setSearchError("Offline or geocoder unavailable. Please enter coordinates manually.");
+                    } catch (err: any) {
+                      setSearchError(err?.message || "Offline or geocoder unavailable. Please enter coordinates manually.");
                     } finally {
                       setSearching(false);
                     }
@@ -330,6 +342,29 @@ export default function EditProjectScreen() {
               </View>
               {searchError ? (
                 <Text className="text-rose-300 text-[11px] mt-1">{searchError}</Text>
+              ) : null}
+              {searchResults.length ? (
+                <View className="mt-2 border border-slate-700 rounded-lg overflow-hidden">
+                  {searchResults.map((result) => (
+                    <TouchableOpacity
+                      key={result.place_id}
+                      className="px-3 py-2 border-b border-slate-700"
+                      onPress={() => {
+                        const lat = parseFloat(result.lat);
+                        const lon = parseFloat(result.lon);
+                        setPendingLat(lat);
+                        setPendingLng(lon);
+                        setLatitude(String(lat));
+                        setLongitude(String(lon));
+                        setResolvedAddress(result.display_name || "");
+                        animateMapTo(lat, lon);
+                        setSearchResults([]);
+                      }}
+                    >
+                      <Text className="text-slate-100 text-[11px]">{result.display_name}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
               ) : null}
             </View>
             <View style={{ height: 260 }}>
