@@ -13,6 +13,7 @@ import {
 import Screen from "../../../components/layout/Screen";
 import Input from "../../../components/ui/Input";
 import Button from "../../../components/ui/Button";
+import { getThemeColors, useThemeStore } from "../../../store/themeStore";
 import { HistogramChart } from "../../../components/charts/HistogramChart";
 import { ScatterChart } from "../../../components/charts/ScatterChart";
 import { useAuthStore } from "../../../store/authStore";
@@ -38,6 +39,8 @@ import * as Linking from "expo-linking";
 import * as DocumentPicker from "expo-document-picker";
 
 export default function ReportsScreen() {
+  const { mode } = useThemeStore();
+  const theme = getThemeColors(mode);
   const { token } = useAuthStore();
 
   const [projects, setProjects] = useState<Project[]>([]);
@@ -546,9 +549,11 @@ export default function ReportsScreen() {
   return (
     <Screen showNav>
       <ScrollView className="flex-1" showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 150 }}>
-        <Text className="text-xs text-emerald-400 uppercase">Reports</Text>
-        <Text className="text-xl font-bold text-white mb-1">Export Report</Text>
-        <Text className="text-slate-400 text-xs mb-4">
+        <Text className="text-xs text-emerald-400 uppercase" style={{ color: theme.accent  }}>Reports</Text>
+        <Text className="text-xl font-bold text-white mb-1" style={{ color: theme.textPrimary }}>
+          Export Report
+        </Text>
+        <Text className="text-slate-400 text-xs mb-4" style={{ color: theme.textSecondary  }}>
           Select a readings folder, customize metadata, and save/export your report.
         </Text>
 
@@ -560,18 +565,19 @@ export default function ReportsScreen() {
 
         {/* Project selector */}
         <View className="mb-3">
-          <Text className="text-slate-200 text-sm mb-1">Select Project Folder</Text>
+          <Text className="text-slate-200 text-sm mb-1" style={{ color: theme.textPrimary  }}>Select Project Folder</Text>
           <TouchableOpacity
             onPress={() => setShowProjectPicker((prev) => !prev)}
             className="border border-slate-600 rounded-lg px-3 py-3 bg-slate-800"
+            style={{ backgroundColor: theme.surface, borderColor: theme.border }}
           >
-            <Text className="text-slate-100 text-xs">
+            <Text className="text-slate-100 text-xs" style={{ color: theme.textPrimary  }}>
               {projects.find((p) => p.id === selectedProjectId)?.name || "Choose project"}
             </Text>
           </TouchableOpacity>
 
           {showProjectPicker && (
-            <View className="mt-2 border border-slate-600 rounded-lg bg-slate-800">
+            <View className="mt-2 border border-slate-600 rounded-lg bg-slate-800" style={{ backgroundColor: theme.surface, borderColor: theme.border }}>
               <TextInput
                 placeholder="Search project"
                 placeholderTextColor="#94a3b8"
@@ -591,7 +597,7 @@ export default function ReportsScreen() {
                       }}
                       className="px-3 py-2"
                     >
-                      <Text className="text-slate-100 text-xs">{p.name}</Text>
+                      <Text className="text-slate-100 text-xs" style={{ color: theme.textPrimary  }}>{p.name}</Text>
                     </TouchableOpacity>
                   ))}
               </ScrollView>
@@ -600,77 +606,79 @@ export default function ReportsScreen() {
         </View>
 
         <View className="flex-row justify-between items-center mb-2">
-          <Text className="text-slate-200 text-sm">Folders & Summary</Text>
+          <Text className="text-slate-200 text-sm" style={{ color: theme.textPrimary  }}>Folders & Summary</Text>
           <TouchableOpacity
             onPress={refreshFoldersAndSummary}
             className="px-3 py-2 rounded-lg bg-slate-700"
+            style={{ backgroundColor: theme.surfaceAlt }}
             disabled={loadingFolders || loading}
           >
-            <Text className="text-emerald-300 text-xs">{loadingFolders ? "Refreshing..." : "Refresh"}</Text>
+            <Text className="text-emerald-300 text-xs" style={{ color: theme.accent  }}>{loadingFolders ? "Refreshing..." : "Refresh"}</Text>
           </TouchableOpacity>
         </View>
 
-        <View className="rounded-xl bg-slate-800 p-4 mb-3">
-          <Text className="text-slate-200 text-sm mb-2">Project / Folder Details</Text>
-          <Text className="text-slate-400 text-xs">Project: {projects.find((p) => p.id === selectedProjectId)?.name || "N/A"}</Text>
-          <Text className="text-slate-400 text-xs">
+        <View className="rounded-xl bg-slate-800 p-4 mb-3" style={{ backgroundColor: theme.surface }}>
+          <Text className="text-slate-200 text-sm mb-2" style={{ color: theme.textPrimary  }}>Project / Folder Details</Text>
+          <Text className="text-slate-400 text-xs" style={{ color: theme.textSecondary  }}>Project: {projects.find((p) => p.id === selectedProjectId)?.name || "N/A"}</Text>
+          <Text className="text-slate-400 text-xs" style={{ color: theme.textSecondary  }}>
             Age: {projects.find((p) => p.id === selectedProjectId)?.structure_age ?? "N/A"} years
           </Text>
-          <Text className="text-slate-400 text-xs">
+          <Text className="text-slate-400 text-xs" style={{ color: theme.textSecondary  }}>
             Lat/Long: {projects.find((p) => p.id === selectedProjectId)?.latitude ?? "N/A"},{" "}
             {projects.find((p) => p.id === selectedProjectId)?.longitude ?? "N/A"}
           </Text>
-          <Text className="text-slate-400 text-xs">
+          <Text className="text-slate-400 text-xs" style={{ color: theme.textSecondary  }}>
             Folder: {folderLabel || folder || "None selected"} {dateRange ? `| Date range: ${dateRange}` : ""}
           </Text>
-          <Text className="text-slate-400 text-xs">Active model ID: {activeModel?.id ?? "N/A"}</Text>
+          <Text className="text-slate-400 text-xs" style={{ color: theme.textSecondary  }}>Active model ID: {activeModel?.id ?? "N/A"}</Text>
         </View>
 
         {/* Active model card */}
-        <View className="rounded-xl bg-slate-800 p-4 mb-3">
-          <Text className="text-slate-200 text-sm mb-1">Active Correlation Model</Text>
+        <View className="rounded-xl bg-slate-800 p-4 mb-3" style={{ backgroundColor: theme.surface }}>
+          <Text className="text-slate-200 text-sm mb-1" style={{ color: theme.textPrimary  }}>Active Correlation Model</Text>
           {activeModel ? (
             <>
-              <Text className="text-slate-100 text-xs">
+              <Text className="text-slate-100 text-xs" style={{ color: theme.textPrimary  }}>
                 Equation: fc = {activeModel.a0.toFixed(4)} * UPV^{activeModel.a2.toFixed(3)} * RH^{activeModel.a1.toFixed(3)}
                 {activeModel.use_carbonation && activeModel.a3 ? ` * Carb^{${activeModel.a3.toFixed(3)}}` : ""}
               </Text>
-              <Text className="text-slate-400 text-[11px] mt-1">Model ID: {activeModel.id}</Text>
-              <Text className="text-slate-400 text-xs mt-1">
+              <Text className="text-slate-400 text-[11px] mt-1" style={{ color: theme.textSecondary  }}>Model ID: {activeModel.id}</Text>
+              <Text className="text-slate-400 text-xs mt-1" style={{ color: theme.textSecondary  }}>
                 r2 {activeModel.r2?.toFixed(2) ?? "N/A"} | RMSE {activeModel.rmse?.toFixed(2) ?? "N/A"} MPa | Points{" "}
                 {activeModel.points_used}
               </Text>
-              <Text className="text-slate-400 text-xs mt-1">
+              <Text className="text-slate-400 text-xs mt-1" style={{ color: theme.textSecondary  }}>
                 UPV range: {activeModel.upv_min ?? "?"}-{activeModel.upv_max ?? "?"} | RH range: {activeModel.rh_min ?? "?"}-
                 {activeModel.rh_max ?? "?"}
               </Text>
               {activeModel.use_carbonation ? (
-                <Text className="text-slate-400 text-xs mt-1">
+                <Text className="text-slate-400 text-xs mt-1" style={{ color: theme.textSecondary  }}>
                   Carbonation range: {activeModel.carbonation_min ?? "?"}-{activeModel.carbonation_max ?? "?"}
                 </Text>
               ) : null}
             </>
           ) : (
-            <Text className="text-slate-400 text-xs">No active model for this project.</Text>
+            <Text className="text-slate-400 text-xs" style={{ color: theme.textSecondary  }}>No active model for this project.</Text>
           )}
         </View>
 
         {/* Report form */}
-        <View className="rounded-xl bg-slate-800 p-4 mb-3">
-          <Text className="text-slate-200 text-sm mb-2">Report Details</Text>
+        <View className="rounded-xl bg-slate-800 p-4 mb-3" style={{ backgroundColor: theme.surface }}>
+          <Text className="text-slate-200 text-sm mb-2" style={{ color: theme.textPrimary  }}>Report Details</Text>
 
           <Input label="Report Title" value={title} onChangeText={setTitle} placeholder="e.g. SonReb Assessment Report" />
 
-          <Text className="text-slate-200 text-sm mb-1">Readings Folder</Text>
+          <Text className="text-slate-200 text-sm mb-1" style={{ color: theme.textPrimary  }}>Readings Folder</Text>
           <TouchableOpacity
             onPress={() => setShowFolderPicker((prev) => !prev)}
             className="border border-slate-600 rounded-lg px-3 py-3 bg-slate-800"
+            style={{ backgroundColor: theme.surface, borderColor: theme.border }}
           >
-            <Text className="text-slate-100 text-xs">{folderLabel || folder || "Select or type folder name"}</Text>
+            <Text className="text-slate-100 text-xs" style={{ color: theme.textPrimary  }}>{folderLabel || folder || "Select or type folder name"}</Text>
           </TouchableOpacity>
 
           {showFolderPicker ? (
-            <View className="mt-2 border border-slate-600 rounded-lg bg-slate-800">
+            <View className="mt-2 border border-slate-600 rounded-lg bg-slate-800" style={{ backgroundColor: theme.surface, borderColor: theme.border }}>
               <TextInput
                 placeholder="Search folders"
                 placeholderTextColor="#94a3b8"
@@ -712,10 +720,10 @@ export default function ReportsScreen() {
                           setShowFolderPicker(false);
                         }}
                       >
-                        <Text className="text-slate-100 text-xs">{f.name}</Text>
-                        {f.date_range ? <Text className="text-slate-500 text-[10px]">Dates: {f.date_range}</Text> : null}
+                        <Text className="text-slate-100 text-xs" style={{ color: theme.textPrimary  }}>{f.name}</Text>
+                        {f.date_range ? <Text className="text-slate-500 text-[10px]" style={{ color: theme.textMuted  }}>Dates: {f.date_range}</Text> : null}
                         {f.notes ? (
-                          <Text className="text-slate-500 text-[10px]" numberOfLines={1}>
+                          <Text className="text-slate-500 text-[10px]" numberOfLines={1} style={{ color: theme.textMuted  }}>
                             {f.notes}
                           </Text>
                         ) : null}
@@ -723,7 +731,7 @@ export default function ReportsScreen() {
                         !String(f.id).startsWith("auto-") &&
                         !f.derived ? (
                           <TouchableOpacity onPress={() => handleDeleteFolder(f.id)} className="mt-1">
-                            <Text className="text-rose-300 text-[10px]">Delete</Text>
+                            <Text className="text-rose-300 text-[10px]" style={{ color: theme.error  }}>Delete</Text>
                           </TouchableOpacity>
                         ) : null}
                       </TouchableOpacity>
@@ -739,7 +747,7 @@ export default function ReportsScreen() {
                   setShowFolderPicker(false);
                 }}
               >
-                <Text className="text-emerald-300 text-xs">Use "{folderSearch || "typed name"}"</Text>
+                <Text className="text-emerald-300 text-xs" style={{ color: theme.accent  }}>Use "{folderSearch || "typed name"}"</Text>
               </TouchableOpacity>
             </View>
           ) : null}
@@ -749,24 +757,32 @@ export default function ReportsScreen() {
           <Input label="Client Name" value={clientName} onChangeText={setClientName} placeholder="Client name" />
           <Input label="Report Notes (optional)" value={notes} onChangeText={setNotes} placeholder="Notes" />
 
-          <Text className="text-slate-200 text-sm mt-3 mb-2">Engineer Sign-off</Text>
+          <Text className="text-slate-200 text-sm mt-3 mb-2" style={{ color: theme.textPrimary  }}>Engineer Sign-off</Text>
           <Input label="Name" value={engineerName} onChangeText={setEngineerName} placeholder="Engineer name" />
           <Input label="Title" value={engineerTitle} onChangeText={setEngineerTitle} placeholder="Engineer title" />
           <Input label="License / PE #" value={engineerLicense} onChangeText={setEngineerLicense} placeholder="License number" />
 
           <View className="flex-row gap-2 mt-2">
-            <TouchableOpacity onPress={() => pickAndUpload("logo")} className="px-3 py-2 rounded-lg bg-slate-700">
-              <Text className="text-emerald-300 text-xs">{logoUrl ? "Re-upload Logo" : "Upload Logo"}</Text>
+            <TouchableOpacity
+              onPress={() => pickAndUpload("logo")}
+              className="px-3 py-2 rounded-lg bg-slate-700"
+              style={{ backgroundColor: theme.surfaceAlt }}
+            >
+              <Text className="text-emerald-300 text-xs" style={{ color: theme.accent  }}>{logoUrl ? "Re-upload Logo" : "Upload Logo"}</Text>
             </TouchableOpacity>
-            <TouchableOpacity onPress={() => pickAndUpload("signature")} className="px-3 py-2 rounded-lg bg-slate-700">
-              <Text className="text-emerald-300 text-xs">{signatureUrl ? "Re-upload Signature" : "Upload Signature"}</Text>
+            <TouchableOpacity
+              onPress={() => pickAndUpload("signature")}
+              className="px-3 py-2 rounded-lg bg-slate-700"
+              style={{ backgroundColor: theme.surfaceAlt }}
+            >
+              <Text className="text-emerald-300 text-xs" style={{ color: theme.accent  }}>{signatureUrl ? "Re-upload Signature" : "Upload Signature"}</Text>
             </TouchableOpacity>
           </View>
 
           {logoUrl ? (
             <View className="mt-2 flex-row items-center gap-2">
               <Image source={{ uri: logoUrl }} style={{ width: 48, height: 24, resizeMode: "contain" }} />
-              <Text className="text-slate-500 text-[11px] flex-1" numberOfLines={1}>
+              <Text className="text-slate-500 text-[11px] flex-1" numberOfLines={1} style={{ color: theme.textMuted  }}>
                 {logoUrl}
               </Text>
             </View>
@@ -775,7 +791,7 @@ export default function ReportsScreen() {
           {signatureUrl ? (
             <View className="mt-1 flex-row items-center gap-2">
               <Image source={{ uri: signatureUrl }} style={{ width: 64, height: 32, resizeMode: "contain" }} />
-              <Text className="text-slate-500 text-[11px] flex-1" numberOfLines={1}>
+              <Text className="text-slate-500 text-[11px] flex-1" numberOfLines={1} style={{ color: theme.textMuted  }}>
                 {signatureUrl}
               </Text>
             </View>
@@ -783,9 +799,9 @@ export default function ReportsScreen() {
         </View>
 
         {/* Transparency card */}
-        <View className="rounded-xl bg-slate-800 p-4 mb-3">
-          <Text className="text-slate-200 text-sm mb-2">Data Transparency</Text>
-          <Text className="text-slate-400 text-xs mb-2">
+        <View className="rounded-xl bg-slate-800 p-4 mb-3" style={{ backgroundColor: theme.surface }}>
+          <Text className="text-slate-200 text-sm mb-2" style={{ color: theme.textPrimary  }}>Data Transparency</Text>
+          <Text className="text-slate-400 text-xs mb-2" style={{ color: theme.textSecondary  }}>
             Filters: element, location, estimated fc range; exclusion notes are required when filters are applied.
           </Text>
           <Input label="Filter by Element" value={filterElement} onChangeText={setFilterElement} placeholder="e.g. Column" />
@@ -807,21 +823,21 @@ export default function ReportsScreen() {
         </View>
 
         {/* Summary */}
-        <View className="rounded-xl bg-slate-800 p-4 mb-3">
-          <Text className="text-slate-200 text-sm mb-2">Summary & Statistics</Text>
+        <View className="rounded-xl bg-slate-800 p-4 mb-3" style={{ backgroundColor: theme.surface }}>
+          <Text className="text-slate-200 text-sm mb-2" style={{ color: theme.textPrimary  }}>Summary & Statistics</Text>
 
           {loadingSummary ? (
             <ActivityIndicator color="#34d399" />
           ) : summary ? (
             <View>
-              <Text className="text-slate-100 text-xs">
+              <Text className="text-slate-100 text-xs" style={{ color: theme.textPrimary  }}>
                 Total readings: {summary.summary?.total_readings ?? "N/A"} | Total cores: {summary.summary?.total_cores ?? "N/A"}
               </Text>
 
-              <Text className="text-slate-100 text-xs">
+              <Text className="text-slate-100 text-xs" style={{ color: theme.textPrimary  }}>
                 Mean fc: {summary.summary?.mean_estimated_fc ? summary.summary.mean_estimated_fc.toFixed(2) : "N/A"} MPa
               </Text>
-              <Text className="text-slate-100 text-xs">
+              <Text className="text-slate-100 text-xs" style={{ color: theme.textPrimary  }}>
                 Design fc: {summary.summary?.design_fc ?? "N/A"} MPa | Delta{" "}
                 {summary.summary?.design_fc && summary.summary?.mean_estimated_fc
                   ? (summary.summary.mean_estimated_fc - summary.summary.design_fc).toFixed(2)
@@ -829,7 +845,7 @@ export default function ReportsScreen() {
                 MPa
               </Text>
 
-              <Text className="text-slate-100 text-xs">
+              <Text className="text-slate-100 text-xs" style={{ color: theme.textPrimary  }}>
                 Quality: GOOD {summary.summary?.quality?.good ?? 0} | FAIR {summary.summary?.quality?.fair ?? 0} | POOR{" "}
                 {summary.summary?.quality?.poor ?? 0}
               </Text>
@@ -850,7 +866,7 @@ export default function ReportsScreen() {
                 </View>
               </View>
               {summary.summary?.warnings_breakdown ? (
-                <Text className="text-slate-500 text-[10px] mt-1">
+                <Text className="text-slate-500 text-[10px] mt-1" style={{ color: theme.textMuted  }}>
                   RH&lt;min {summary.summary.warnings_breakdown.rh_low ?? 0} | RH&gt;max{" "}
                   {summary.summary.warnings_breakdown.rh_high ?? 0} | UPV&lt;min{" "}
                   {summary.summary.warnings_breakdown.upv_low ?? 0} | UPV&gt;max{" "}
@@ -859,11 +875,11 @@ export default function ReportsScreen() {
               ) : null}
 
               <View className="mt-2">
-                <Text className="text-slate-100 text-xs mb-1">
+                <Text className="text-slate-100 text-xs mb-1" style={{ color: theme.textPrimary  }}>
                   Pass/Fail (design fc {summary.summary?.design_fc ?? "N/A"} MPa):
                 </Text>
 
-                <View className="bg-slate-700 h-2 rounded-full overflow-hidden">
+                <View className="bg-slate-700 h-2 rounded-full overflow-hidden" style={{ backgroundColor: theme.surfaceAlt }}>
                   {(() => {
                     const pass = summary.summary?.pass_fail?.pass ?? 0;
                     const fail = summary.summary?.pass_fail?.fail ?? 0;
@@ -879,33 +895,33 @@ export default function ReportsScreen() {
                   })()}
                 </View>
 
-                <Text className="text-slate-400 text-[11px] mt-1">
+                <Text className="text-slate-400 text-[11px] mt-1" style={{ color: theme.textSecondary  }}>
                   PASS {summary.summary?.pass_fail?.pass ?? 0} | FAIL {summary.summary?.pass_fail?.fail ?? 0}
                 </Text>
-                <Text className="text-slate-500 text-[10px]">
+                <Text className="text-slate-500 text-[10px]" style={{ color: theme.textMuted  }}>
                   Pass = estimated fc ≥ design fc. Fail = estimated fc &lt; design fc.
                 </Text>
 
                 {summary.summary?.pass_pct !== undefined && summary.summary?.fail_pct !== undefined ? (
-                  <Text className="text-slate-400 text-[11px]">
+                  <Text className="text-slate-400 text-[11px]" style={{ color: theme.textSecondary  }}>
                     Pass {(summary.summary.pass_pct * 100).toFixed(1)}% - Fail {(summary.summary.fail_pct * 100).toFixed(1)}%
                   </Text>
                 ) : null}
               </View>
 
               <View className="mt-2">
-                <Text className="text-slate-100 text-xs mb-1">Quality distribution vs design fc</Text>
+                <Text className="text-slate-100 text-xs mb-1" style={{ color: theme.textPrimary  }}>Quality distribution vs design fc</Text>
                 <View className="border border-slate-700 rounded-lg p-2">
                   <View className="flex-row justify-between">
-                    <Text className="text-slate-300 text-[11px]">Pass</Text>
-                    <Text className="text-slate-300 text-[11px]">
+                    <Text className="text-slate-300 text-[11px]" style={{ color: theme.textSecondary  }}>Pass</Text>
+                    <Text className="text-slate-300 text-[11px]" style={{ color: theme.textSecondary  }}>
                       {summary.summary?.pass_fail?.pass ?? 0} (
                       {summary.summary?.pass_pct !== undefined ? (summary.summary.pass_pct * 100).toFixed(1) : "N/A"}%)
                     </Text>
                   </View>
                   <View className="flex-row justify-between mt-1">
-                    <Text className="text-slate-300 text-[11px]">Fail</Text>
-                    <Text className="text-slate-300 text-[11px]">
+                    <Text className="text-slate-300 text-[11px]" style={{ color: theme.textSecondary  }}>Fail</Text>
+                    <Text className="text-slate-300 text-[11px]" style={{ color: theme.textSecondary  }}>
                       {summary.summary?.pass_fail?.fail ?? 0} (
                       {summary.summary?.fail_pct !== undefined ? (summary.summary.fail_pct * 100).toFixed(1) : "N/A"}%)
                     </Text>
@@ -915,9 +931,9 @@ export default function ReportsScreen() {
 
               {summary.summary?.warnings_breakdown ? (
                 <View className="mt-2">
-                  <Text className="text-slate-200 text-[11px] mb-1">Warnings breakdown</Text>
+                  <Text className="text-slate-200 text-[11px] mb-1" style={{ color: theme.textPrimary  }}>Warnings breakdown</Text>
 
-                  <View className="bg-slate-700 h-2 rounded-full overflow-hidden">
+                  <View className="bg-slate-700 h-2 rounded-full overflow-hidden" style={{ backgroundColor: theme.surfaceAlt }}>
                     {(() => {
                       const rhLow = summary.summary.warnings_breakdown.rh_low ?? 0;
                       const rhHigh = summary.summary.warnings_breakdown.rh_high ?? 0;
@@ -936,14 +952,14 @@ export default function ReportsScreen() {
                     })()}
                   </View>
 
-                  <Text className="text-slate-400 text-[10px] mt-1">
+                  <Text className="text-slate-400 text-[10px] mt-1" style={{ color: theme.textSecondary  }}>
                     RH&lt;min {summary.summary.warnings_breakdown.rh_low ?? 0} | RH&gt;max {summary.summary.warnings_breakdown.rh_high ?? 0}
                   </Text>
-                  <Text className="text-slate-400 text-[10px]">
+                  <Text className="text-slate-400 text-[10px]" style={{ color: theme.textSecondary  }}>
                     UPV&lt;min {summary.summary.warnings_breakdown.upv_low ?? 0} | UPV&gt;max{" "}
                     {summary.summary.warnings_breakdown.upv_high ?? 0}
                   </Text>
-                  <Text className="text-slate-500 text-[10px] mt-1">
+                  <Text className="text-slate-500 text-[10px] mt-1" style={{ color: theme.textMuted  }}>
                     {summary.summary.warnings_breakdown.rh_low ? "- RH below min range\n" : ""}
                     {summary.summary.warnings_breakdown.rh_high ? "- RH above max range\n" : ""}
                     {summary.summary.warnings_breakdown.upv_low ? "- UPV below min range\n" : ""}
@@ -953,16 +969,16 @@ export default function ReportsScreen() {
               ) : null}
             </View>
           ) : (
-            <Text className="text-slate-400 text-xs">
+            <Text className="text-slate-400 text-xs" style={{ color: theme.textSecondary  }}>
               Total readings in folder, total cores used in active model, mean estimated fc, quality distribution, and warnings will appear here.
             </Text>
           )}
         </View>
 
         {/* Quality distribution mini-chart */}
-        <View className="rounded-xl bg-slate-800 p-4 mb-3">
-          <Text className="text-slate-200 text-sm mb-2">Quality Distribution</Text>
-          <View className="bg-slate-700 h-3 rounded-full overflow-hidden mb-1">
+        <View className="rounded-xl bg-slate-800 p-4 mb-3" style={{ backgroundColor: theme.surface }}>
+          <Text className="text-slate-200 text-sm mb-2" style={{ color: theme.textPrimary  }}>Quality Distribution</Text>
+          <View className="bg-slate-700 h-3 rounded-full overflow-hidden mb-1" style={{ backgroundColor: theme.surfaceAlt }}>
             {(() => {
               const pass = qualityBreakdown.pass ?? 0;
               const fail = qualityBreakdown.fail ?? 0;
@@ -976,34 +992,34 @@ export default function ReportsScreen() {
               );
             })()}
           </View>
-          <Text className="text-slate-400 text-[11px]">
+          <Text className="text-slate-400 text-[11px]" style={{ color: theme.textSecondary  }}>
             PASS {qualityBreakdown.pass ?? 0} | FAIL {qualityBreakdown.fail ?? 0}
           </Text>
 
           {warningBreakdown.count !== undefined ? (
-            <Text className="text-slate-400 text-[11px] mt-1">Warnings: {warningBreakdown.count}</Text>
+            <Text className="text-slate-400 text-[11px] mt-1" style={{ color: theme.textSecondary  }}>Warnings: {warningBreakdown.count}</Text>
           ) : null}
 
           {warningBreakdown.details?.length ? (
             <View className="mt-1">
               {warningBreakdown.details.slice(0, 3).map((w, idx) => (
-                <Text key={idx} className="text-slate-500 text-[10px]">
+                <Text key={idx} className="text-slate-500 text-[10px]" style={{ color: theme.textMuted  }}>
                   - {w}
                 </Text>
               ))}
               {warningBreakdown.details.length > 3 ? (
-                <Text className="text-slate-500 text-[10px]">... {warningBreakdown.details.length - 3} more</Text>
+                <Text className="text-slate-500 text-[10px]" style={{ color: theme.textMuted  }}>... {warningBreakdown.details.length - 3} more</Text>
               ) : null}
             </View>
           ) : null}
         </View>
 
         {/* Charts */}
-        <View className="rounded-xl bg-slate-800 p-4 mb-3">
-          <Text className="text-slate-200 text-sm mb-2">Charts</Text>
+        <View className="rounded-xl bg-slate-800 p-4 mb-3" style={{ backgroundColor: theme.surface }}>
+          <Text className="text-slate-200 text-sm mb-2" style={{ color: theme.textPrimary  }}>Charts</Text>
           {summary?.scatter?.length ? (
             <View className="mb-2">
-              <Text className="text-slate-400 text-xs mb-1">Scatter (Measured vs Estimated):</Text>
+              <Text className="text-slate-400 text-xs mb-1" style={{ color: theme.textSecondary  }}>Scatter (Measured vs Estimated):</Text>
               <ScatterChart
                 points={summary.scatter.map((s: any) => ({
                   x: s.measured ?? 0,
@@ -1013,57 +1029,69 @@ export default function ReportsScreen() {
               />
             </View>
           ) : (
-            <Text className="text-slate-500 text-[11px] mb-1">Scatter data will appear here.</Text>
+            <Text className="text-slate-500 text-[11px] mb-1" style={{ color: theme.textMuted  }}>Scatter data will appear here.</Text>
           )}
 
           {summary?.histogram?.length ? (
             <HistogramChart bins={summary.histogram} maxHeight={120} />
           ) : (
-            <Text className="text-slate-500 text-[11px]">Histogram will appear here.</Text>
+            <Text className="text-slate-500 text-[11px]" style={{ color: theme.textMuted  }}>Histogram will appear here.</Text>
           )}
         </View>
 
         {/* Data tables */}
-        <View className="rounded-xl bg-slate-800 p-4 mb-3">
-          <Text className="text-slate-200 text-sm mb-2">Data Tables</Text>
+        <View className="rounded-xl bg-slate-800 p-4 mb-3" style={{ backgroundColor: theme.surface }}>
+          <Text className="text-slate-200 text-sm mb-2" style={{ color: theme.textPrimary  }}>Data Tables</Text>
 
-          <Text className="text-slate-300 text-xs mb-1">Core verification (first few):</Text>
+          <Text className="text-slate-300 text-xs mb-1" style={{ color: theme.textSecondary  }}>Core verification (first few):</Text>
           {summary?.core_verification?.length ? (
             summary.core_verification.slice(0, 5).map((c: any) => (
-              <Text key={c.id} className="text-slate-500 text-[11px]">
+              <Text key={c.id} className="text-slate-500 text-[11px]" style={{ color: theme.textMuted  }}>
                 Lab {c.measured_fc} | Est {c.predicted_fc?.toFixed?.(2) ?? "N/A"} | Err{" "}
                 {c.error_pct ? c.error_pct.toFixed(1) : "N/A"}%
               </Text>
             ))
           ) : (
-            <Text className="text-slate-500 text-[11px]">No core data.</Text>
+            <Text className="text-slate-500 text-[11px]" style={{ color: theme.textMuted  }}>No core data.</Text>
           )}
 
-          <Text className="text-slate-300 text-xs mt-2 mb-1">Field grid (first few):</Text>
+          <Text className="text-slate-300 text-xs mt-2 mb-1" style={{ color: theme.textSecondary  }}>Field grid (first few):</Text>
           {summary?.field_grid?.length ? (
             summary.field_grid.slice(0, 5).map((r: any) => (
-              <Text key={r.id} className="text-slate-500 text-[11px]">
+              <Text key={r.id} className="text-slate-500 text-[11px]" style={{ color: theme.textMuted  }}>
                 {r.location || "N/A"} | R {r.rh_index} | UPV {r.upv} | fc {r.estimated_fc?.toFixed?.(2) ?? "N/A"}
               </Text>
             ))
           ) : (
-            <Text className="text-slate-500 text-[11px]">No readings data.</Text>
+            <Text className="text-slate-500 text-[11px]" style={{ color: theme.textMuted  }}>No readings data.</Text>
           )}
         </View>
 
         {/* Photo Documentation */}
-        <View className="rounded-xl bg-slate-800 p-4 mb-4">
-          <Text className="text-slate-200 text-sm mb-2">Photo Documentation</Text>
+        <View className="rounded-xl bg-slate-800 p-4 mb-4" style={{ backgroundColor: theme.surface }}>
+          <Text className="text-slate-200 text-sm mb-2" style={{ color: theme.textPrimary  }}>Photo Documentation</Text>
 
           <View className="flex-row gap-2 mb-2 flex-wrap">
-            <TouchableOpacity onPress={() => pickAndUpload("photo")} className="px-3 py-2 rounded-lg bg-slate-700">
-              <Text className="text-emerald-300 text-xs">Upload Photo</Text>
+            <TouchableOpacity
+              onPress={() => pickAndUpload("photo")}
+              className="px-3 py-2 rounded-lg bg-slate-700"
+              style={{ backgroundColor: theme.surfaceAlt }}
+            >
+              <Text className="text-emerald-300 text-xs" style={{ color: theme.accent  }}>Upload Photo</Text>
             </TouchableOpacity>
-            <TouchableOpacity onPress={() => pickAndUpload("logo")} className="px-3 py-2 rounded-lg bg-slate-700">
-              <Text className="text-emerald-300 text-xs">{logoUrl ? "Re-upload Logo" : "Upload Logo"}</Text>
+            <TouchableOpacity
+              onPress={() => pickAndUpload("logo")}
+              className="px-3 py-2 rounded-lg bg-slate-700"
+              style={{ backgroundColor: theme.surfaceAlt }}
+            >
+              <Text className="text-emerald-300 text-xs" style={{ color: theme.accent  }}>{logoUrl ? "Re-upload Logo" : "Upload Logo"}</Text>
             </TouchableOpacity>
-            <TouchableOpacity onPress={() => pickAndUpload("signature")} className="px-3 py-2 rounded-lg bg-slate-700">
-              <Text className="text-emerald-300 text-xs">{signatureUrl ? "Re-upload Signature" : "Upload Signature"}</Text>
+            <TouchableOpacity
+              onPress={() => pickAndUpload("signature")}
+              className="px-3 py-2 rounded-lg bg-slate-700"
+              style={{ backgroundColor: theme.surfaceAlt }}
+            >
+              <Text className="text-emerald-300 text-xs" style={{ color: theme.accent  }}>{signatureUrl ? "Re-upload Signature" : "Upload Signature"}</Text>
             </TouchableOpacity>
           </View>
 
@@ -1071,7 +1099,7 @@ export default function ReportsScreen() {
             <View className="gap-3">
               {photosByLocation.map(([loc, items]) => (
                 <View key={loc}>
-                  <Text className="text-slate-300 text-xs mb-1">{loc}</Text>
+                  <Text className="text-slate-300 text-xs mb-1" style={{ color: theme.textSecondary  }}>{loc}</Text>
                   <View className="flex-row flex-wrap gap-2">
                     {items.map((p) => (
                       <TouchableOpacity
@@ -1082,23 +1110,23 @@ export default function ReportsScreen() {
                         <View className="items-center mb-1">
                           <Image source={{ uri: p.image_url }} style={{ width: "100%", height: 90, borderRadius: 6 }} resizeMode="cover" />
                         </View>
-                        <Text className="text-slate-300 text-[11px]" numberOfLines={1}>
+                        <Text className="text-slate-300 text-[11px]" numberOfLines={1} style={{ color: theme.textSecondary  }}>
                           {p.caption || p.location_tag || "Photo"}
                         </Text>
                         {p.location_tag ? (
-                          <Text className="text-slate-500 text-[10px]" numberOfLines={1}>
+                          <Text className="text-slate-500 text-[10px]" numberOfLines={1} style={{ color: theme.textMuted  }}>
                             {p.location_tag}
                           </Text>
                         ) : null}
-                        <Text className="text-emerald-300 text-[11px] mt-1">Open</Text>
+                        <Text className="text-emerald-300 text-[11px] mt-1" style={{ color: theme.accent  }}>Open</Text>
 
                         {p.id ? (
                           <View className="flex-row justify-between mt-1">
                             <TouchableOpacity onPress={() => startEditPhoto(p)}>
-                              <Text className="text-emerald-300 text-[11px]">Edit</Text>
+                              <Text className="text-emerald-300 text-[11px]" style={{ color: theme.accent  }}>Edit</Text>
                             </TouchableOpacity>
                             <TouchableOpacity onPress={() => handleDeletePhoto(p.id!)}>
-                              <Text className="text-rose-300 text-[11px]">Delete</Text>
+                              <Text className="text-rose-300 text-[11px]" style={{ color: theme.error  }}>Delete</Text>
                             </TouchableOpacity>
                           </View>
                         ) : null}
@@ -1109,12 +1137,12 @@ export default function ReportsScreen() {
               ))}
             </View>
           ) : (
-            <Text className="text-slate-400 text-xs">Uploaded photo URLs will appear here.</Text>
+            <Text className="text-slate-400 text-xs" style={{ color: theme.textSecondary  }}>Uploaded photo URLs will appear here.</Text>
           )}
 
           {editingPhotoId ? (
             <View className="mt-3 border border-slate-700 rounded-lg p-3">
-              <Text className="text-slate-200 text-sm mb-2">Edit Photo</Text>
+              <Text className="text-slate-200 text-sm mb-2" style={{ color: theme.textPrimary  }}>Edit Photo</Text>
               <Input label="Caption" value={editingPhotoCaption} onChangeText={setEditingPhotoCaption} placeholder="Caption" />
               <Input
                 label="Location"
@@ -1129,15 +1157,15 @@ export default function ReportsScreen() {
             </View>
           ) : null}
 
-          {logoUrl ? <Text className="text-slate-500 text-[11px] mt-2">Logo URL: {logoUrl}</Text> : null}
-          {signatureUrl ? <Text className="text-slate-500 text-[11px] mt-1">Signature URL: {signatureUrl}</Text> : null}
+          {logoUrl ? <Text className="text-slate-500 text-[11px] mt-2" style={{ color: theme.textMuted  }}>Logo URL: {logoUrl}</Text> : null}
+          {signatureUrl ? <Text className="text-slate-500 text-[11px] mt-1" style={{ color: theme.textMuted  }}>Signature URL: {signatureUrl}</Text> : null}
         </View>
 
         {/* Photo edit modal */}
         <Modal visible={showPhotoModal} transparent animationType="fade">
           <View className="flex-1 bg-black/60 justify-center px-6">
-            <View className="bg-slate-800 rounded-xl p-4">
-              <Text className="text-slate-100 text-sm mb-3">Edit Photo</Text>
+            <View className="bg-slate-800 rounded-xl p-4" style={{ backgroundColor: theme.surface }}>
+              <Text className="text-slate-100 text-sm mb-3" style={{ color: theme.textPrimary  }}>Edit Photo</Text>
 
               {editingPhotoUrl ? (
                 <Image
@@ -1147,7 +1175,7 @@ export default function ReportsScreen() {
               ) : null}
               {sameLocationPhotos.length ? (
                 <View className="mb-2">
-                  <Text className="text-slate-400 text-[11px] mb-1">
+                  <Text className="text-slate-400 text-[11px] mb-1" style={{ color: theme.textSecondary  }}>
                     Other photos at this location ({sameLocationPhotos.length}):
                   </Text>
                   <ScrollView horizontal showsHorizontalScrollIndicator={false}>
@@ -1196,12 +1224,13 @@ export default function ReportsScreen() {
         </View>
 
         {/* Saved reports */}
-        <View className="rounded-xl bg-slate-800 p-4 mb-4">
-          <Text className="text-slate-200 text-sm mb-2">Saved Reports</Text>
+        <View className="rounded-xl bg-slate-800 p-4 mb-4" style={{ backgroundColor: theme.surface }}>
+          <Text className="text-slate-200 text-sm mb-2" style={{ color: theme.textPrimary  }}>Saved Reports</Text>
 
           <View className="flex-row justify-end mb-2">
             <TouchableOpacity
               className="px-3 py-2 rounded-lg bg-slate-700"
+              style={{ backgroundColor: theme.surfaceAlt }}
               onPress={async () => {
                 if (!selectedProjectId) return;
                 try {
@@ -1215,7 +1244,7 @@ export default function ReportsScreen() {
                 }
               }}
             >
-              <Text className="text-emerald-300 text-xs">Refresh</Text>
+              <Text className="text-emerald-300 text-xs" style={{ color: theme.accent  }}>Refresh</Text>
             </TouchableOpacity>
           </View>
 
@@ -1225,14 +1254,16 @@ export default function ReportsScreen() {
             <View className="gap-3">
               {reports.map((r) => (
                 <View key={r.id} className="border border-slate-700 rounded-lg p-3">
-                  <Text className="text-white text-sm font-semibold">{r.title}</Text>
-                  <Text className="text-slate-400 text-xs mt-1">
+                  <Text className="text-white text-sm font-semibold" style={{ color: theme.textPrimary }}>
+                    {r.title}
+                  </Text>
+                  <Text className="text-slate-400 text-xs mt-1" style={{ color: theme.textSecondary  }}>
                     Project: {projects.find((p) => p.id === r.project)?.name || r.project}
                   </Text>
-                  <Text className="text-slate-400 text-xs">
+                  <Text className="text-slate-400 text-xs" style={{ color: theme.textSecondary  }}>
                     Folder: {r.folder || "N/A"} | Date: {r.date_range || "N/A"}
                   </Text>
-                  <Text className="text-slate-500 text-[11px] mt-1">ID: {r.id}</Text>
+                  <Text className="text-slate-500 text-[11px] mt-1" style={{ color: theme.textMuted  }}>ID: {r.id}</Text>
 
                   <View className="flex-row items-center gap-2 mt-1">
                     <View
@@ -1251,7 +1282,7 @@ export default function ReportsScreen() {
                   </View>
 
                   {r.active_model_id ? (
-                    <Text className="text-slate-500 text-[11px]">Active model ID: {r.active_model_id}</Text>
+                    <Text className="text-slate-500 text-[11px]" style={{ color: theme.textMuted  }}>Active model ID: {r.active_model_id}</Text>
                   ) : null}
 
                   <View className="flex-row gap-4 mt-2">
@@ -1272,30 +1303,30 @@ export default function ReportsScreen() {
                         setNotes(r.notes || "");
                       }}
                     >
-                      <Text className="text-emerald-300 text-xs">Edit</Text>
+                      <Text className="text-emerald-300 text-xs" style={{ color: theme.accent  }}>Edit</Text>
                     </TouchableOpacity>
 
                     <TouchableOpacity onPress={() => handleDelete(r.id)}>
-                      <Text className="text-rose-300 text-xs">Delete</Text>
+                      <Text className="text-rose-300 text-xs" style={{ color: theme.error  }}>Delete</Text>
                     </TouchableOpacity>
 
                     {r.pdf_url ? (
                       <TouchableOpacity onPress={() => Linking.openURL(r.pdf_url!)}>
-                        <Text className="text-slate-200 text-xs">Open PDF</Text>
+                        <Text className="text-slate-200 text-xs" style={{ color: theme.textPrimary  }}>Open PDF</Text>
                       </TouchableOpacity>
                     ) : (
                       <TouchableOpacity onPress={() => handleExport("pdf", r.id)}>
-                        <Text className="text-slate-200 text-xs">Export PDF</Text>
+                        <Text className="text-slate-200 text-xs" style={{ color: theme.textPrimary  }}>Export PDF</Text>
                       </TouchableOpacity>
                     )}
 
                     {r.csv_url ? (
                       <TouchableOpacity onPress={() => Linking.openURL(r.csv_url!)}>
-                        <Text className="text-slate-200 text-xs">Open CSV</Text>
+                        <Text className="text-slate-200 text-xs" style={{ color: theme.textPrimary  }}>Open CSV</Text>
                       </TouchableOpacity>
                     ) : (
                       <TouchableOpacity onPress={() => handleExport("csv", r.id)}>
-                        <Text className="text-slate-200 text-xs">Export CSV</Text>
+                        <Text className="text-slate-200 text-xs" style={{ color: theme.textPrimary  }}>Export CSV</Text>
                       </TouchableOpacity>
                     )}
                   </View>
@@ -1303,7 +1334,7 @@ export default function ReportsScreen() {
               ))}
             </View>
           ) : (
-            <Text className="text-slate-400 text-xs">No saved reports yet.</Text>
+            <Text className="text-slate-400 text-xs" style={{ color: theme.textSecondary  }}>No saved reports yet.</Text>
           )}
         </View>
       </ScrollView>
