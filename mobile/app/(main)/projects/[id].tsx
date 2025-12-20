@@ -5,6 +5,7 @@ import Screen from "../../../components/layout/Screen";
 import { getProject, Project, listMembers, Member, deleteMember } from "../../../services/projectService";
 import { getActiveModel, CalibrationModel } from "../../../services/calibrationService";
 import { useAuthStore } from "../../../store/authStore";
+import { useThemeStore, getThemeColors } from "../../../store/themeStore";
 
 const TABS = ["Overview", "Members", "Calibration"];
 
@@ -12,6 +13,8 @@ export default function ProjectOverviewScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { token } = useAuthStore();
+  const { mode } = useThemeStore();
+  const theme = getThemeColors(mode);
   const [project, setProject] = useState<Project | null>(null);
   const [activeTab, setActiveTab] = useState<string>("Overview");
   const [loading, setLoading] = useState(false);
@@ -88,7 +91,7 @@ export default function ProjectOverviewScreen() {
   );
 
   const Tabs = (
-    <ScrollView horizontal showsHorizontalScrollIndicator={false} className="px-4 bg-slate-900">
+    <ScrollView horizontal showsHorizontalScrollIndicator={false} className="px-4">
       <View className="flex-row gap-2 py-1">
         {TABS.map((tab) => {
           const isActive = tab === activeTab;
@@ -96,16 +99,15 @@ export default function ProjectOverviewScreen() {
             <TouchableOpacity
               key={tab}
               onPress={() => setActiveTab(tab)}
-              className={`h-10 px-4 rounded-full border items-center justify-center ${
-                isActive
-                  ? "border-emerald-500 bg-emerald-500/10"
-                  : "border-slate-700 bg-slate-800/80"
-              }`}
+              className="h-10 px-4 rounded-full border items-center justify-center"
+              style={{
+                borderColor: isActive ? theme.accent : theme.border,
+                backgroundColor: isActive ? `${theme.accent}22` : theme.surface,
+              }}
             >
               <Text
-                className={`text-xs font-semibold ${
-                  isActive ? "text-emerald-300" : "text-slate-300"
-                }`}
+                className="text-xs font-semibold"
+                style={{ color: isActive ? theme.accent : theme.textSecondary }}
               >
                 {tab}
               </Text>
@@ -125,11 +127,13 @@ export default function ProjectOverviewScreen() {
       >
         <View className="mb-3 px-4 pt-4 flex-row items-start justify-between">
           <View className="flex-1 pr-3">
-            <Text className="text-xs text-emerald-400 uppercase">Project</Text>
-            <Text className="text-xl font-bold text-white">
+            <Text className="text-xs uppercase" style={{ color: theme.accent }}>
+              Project
+            </Text>
+            <Text className="text-xl font-bold" style={{ color: theme.textPrimary }}>
               {project?.name || "Project"}
             </Text>
-            <Text className="text-slate-400 text-xs mt-1">
+            <Text className="text-xs mt-1" style={{ color: theme.textMuted }}>
               {project?.location || ""} → ID: {id}
             </Text>
           </View>
@@ -142,8 +146,13 @@ export default function ProjectOverviewScreen() {
             }
             asChild
           >
-            <TouchableOpacity className="rounded-xl border border-emerald-500/60 px-3 py-2">
-              <Text className="text-emerald-200 text-xs font-semibold">Edit</Text>
+            <TouchableOpacity
+              className="rounded-xl px-3 py-2"
+              style={{ borderColor: theme.accent, borderWidth: 1 }}
+            >
+              <Text className="text-xs font-semibold" style={{ color: theme.accent }}>
+                Edit
+              </Text>
             </TouchableOpacity>
           </Link>
         </View>
@@ -151,19 +160,26 @@ export default function ProjectOverviewScreen() {
         {Tabs}
 
         {error ? (
-          <View className="bg-rose-500/10 border border-rose-500/40 rounded-lg p-3 mb-3 mx-4">
-            <Text className="text-rose-100 text-xs">{error}</Text>
+          <View
+            className="rounded-lg p-3 mb-3 mx-4"
+            style={{ backgroundColor: `${theme.error}22`, borderColor: theme.error, borderWidth: 1 }}
+          >
+            <Text className="text-xs" style={{ color: theme.error }}>
+              {error}
+            </Text>
           </View>
         ) : null}
 
         {loading ? (
           <View className="items-center justify-center py-8">
-            <ActivityIndicator color="#34d399" />
+            <ActivityIndicator color={theme.accent} />
           </View>
         ) : activeTab === "Members" ? (
           <View className="px-4 pb-4 mt-3">
             <View className="flex-row justify-between items-center mb-2">
-              <Text className="text-slate-200 font-semibold">Members</Text>
+              <Text className="font-semibold" style={{ color: theme.textPrimary }}>
+                Members
+              </Text>
               <Link
                 href={{
                   pathname: "/projects/members/new",
@@ -171,14 +187,14 @@ export default function ProjectOverviewScreen() {
                 }}
                 asChild
               >
-                <TouchableOpacity className="rounded-xl bg-emerald-600 px-3 py-2">
-                  <Text className="text-white text-xs font-semibold">
+                <TouchableOpacity className="rounded-xl px-3 py-2" style={{ backgroundColor: theme.accent }}>
+                  <Text className="text-xs font-semibold" style={{ color: theme.textPrimary }}>
                     + New Member
                   </Text>
                 </TouchableOpacity>
               </Link>
             </View>
-            <Text className="text-slate-400 text-xs mb-2">
+            <Text className="text-xs mb-2" style={{ color: theme.textMuted }}>
               {membersError
                 ? membersError
                 : !members.length
@@ -186,19 +202,23 @@ export default function ProjectOverviewScreen() {
                 : ""}
             </Text>
             {membersLoading ? (
-              <ActivityIndicator color="#34d399" />
+              <ActivityIndicator color={theme.accent} />
             ) : (
               <View style={{ gap: 9, paddingBottom: 150 }}>
                 {members.map((m) => (
-                  <View key={m.id} className="rounded-xl bg-slate-800 p-4">
-                    <Text className="text-white font-semibold">{m.member_id}</Text>
-                    <Text className="text-slate-400 text-xs mt-1">
+                  <View key={m.id} className="rounded-xl p-4" style={{ backgroundColor: theme.surface }}>
+                    <Text className="font-semibold" style={{ color: theme.textPrimary }}>
+                      {m.member_id}
+                    </Text>
+                    <Text className="text-xs mt-1" style={{ color: theme.textMuted }}>
                       {m.type}
                       {m.level ? ` → ${m.level}` : ""}
                       {m.gridline ? ` → Grid ${m.gridline}` : ""}
                     </Text>
                     {m.notes ? (
-                      <Text className="text-slate-500 text-xs mt-1">{m.notes}</Text>
+                      <Text className="text-xs mt-1" style={{ color: theme.textDisabled }}>
+                        {m.notes}
+                      </Text>
                     ) : null}
                     <View className="flex-row gap-4 mt-2">
                       <Link
@@ -219,7 +239,9 @@ export default function ProjectOverviewScreen() {
                         asChild
                       >
                         <TouchableOpacity>
-                          <Text className="text-emerald-300 text-xs">Edit</Text>
+                          <Text className="text-xs" style={{ color: theme.accent }}>
+                            Edit
+                          </Text>
                         </TouchableOpacity>
                       </Link>
                       <TouchableOpacity
@@ -241,7 +263,9 @@ export default function ProjectOverviewScreen() {
                           );
                         }}
                       >
-                        <Text className="text-rose-300 text-xs">Delete</Text>
+                        <Text className="text-xs" style={{ color: theme.error }}>
+                          Delete
+                        </Text>
                       </TouchableOpacity>
                     </View>
                   </View>
@@ -260,18 +284,18 @@ export default function ProjectOverviewScreen() {
           >
             {activeTab === "Overview" && (
               <View style={{ gap: 12 }}>
-                <View className="rounded-xl bg-slate-800 p-4">
-                  <Text className="text-slate-300 text-sm mb-1">Design fc'</Text>
-                  <Text className="text-white text-xl font-semibold">
+                <View className="rounded-xl p-4" style={{ backgroundColor: theme.surface }}>
+                  <Text className="text-sm mb-1" style={{ color: theme.textSecondary }}>Design fc'</Text>
+                  <Text className="text-xl font-semibold" style={{ color: theme.textPrimary }}>
                     {project?.design_fc ? `${project.design_fc} MPa` : "--"}
                   </Text>
                 </View>
-                <View className="rounded-xl bg-slate-800 p-4">
-                  <Text className="text-slate-300 text-sm mb-1">Structure Info</Text>
-                  <Text className="text-white text-base font-semibold">
+                <View className="rounded-xl p-4" style={{ backgroundColor: theme.surface }}>
+                  <Text className="text-sm mb-1" style={{ color: theme.textSecondary }}>Structure Info</Text>
+                  <Text className="text-base font-semibold" style={{ color: theme.textPrimary }}>
                     Age: {project?.structure_age ?? "--"} years
                   </Text>
-                  <Text className="text-slate-400 text-xs mt-1">
+                  <Text className="text-xs mt-1" style={{ color: theme.textMuted }}>
                     Lat/Long: {project?.latitude ?? "--"}, {project?.longitude ?? "--"}
                   </Text>
                   {project?.latitude !== undefined && project?.longitude !== undefined ? (
@@ -285,18 +309,18 @@ export default function ProjectOverviewScreen() {
                         }
                       }}
                     >
-                      <Text className="text-emerald-300 text-xs">Open in Maps</Text>
+                      <Text className="text-xs" style={{ color: theme.accent }}>Open in Maps</Text>
                     </TouchableOpacity>
                   ) : null}
                 </View>
-                <View className="rounded-xl bg-slate-800 p-4">
-                  <Text className="text-slate-300 text-sm mb-1">
+                <View className="rounded-xl p-4" style={{ backgroundColor: theme.surface }}>
+                  <Text className="text-sm mb-1" style={{ color: theme.textSecondary }}>
                     Active Model
                   </Text>
-                  <Text className="text-white text-base font-semibold">
+                  <Text className="text-base font-semibold" style={{ color: theme.textPrimary }}>
                     {project?.status === "calibrated" ? "Calibrated" : "No model yet"}
                   </Text>
-                  <Text className="text-slate-400 text-xs mt-2">
+                  <Text className="text-xs mt-2" style={{ color: theme.textMuted }}>
                     Add calibration points and generate a model to activate project-specific SonReb coefficients.
                   </Text>
                 </View>
@@ -306,36 +330,36 @@ export default function ProjectOverviewScreen() {
             {activeTab === "Calibration" && (
               <View style={{ gap: 12 }}>
                 {activeModel ? (
-                  <View className="rounded-xl bg-slate-800 p-4">
-                    <Text className="text-slate-300 text-sm mb-1">Active Model</Text>
-                    <Text className="text-white text-base font-semibold">
+                  <View className="rounded-xl p-4" style={{ backgroundColor: theme.surface }}>
+                    <Text className="text-sm mb-1" style={{ color: theme.textSecondary }}>Active Model</Text>
+                    <Text className="text-base font-semibold" style={{ color: theme.textPrimary }}>
                       r² {activeModel.r2.toFixed(2)} • RMSE {activeModel.rmse?.toFixed(2) ?? "--"} MPa
                     </Text>
-                    <Text className="text-slate-400 text-xs mt-2">
+                    <Text className="text-xs mt-2" style={{ color: theme.textMuted }}>
                       Points used: {activeModel.points_used} • Carbonation:{" "}
                       {activeModel.use_carbonation ? "Yes" : "No"}
                     </Text>
-                    <Text className="text-slate-500 text-xs mt-1">
+                    <Text className="text-xs mt-1" style={{ color: theme.textDisabled }}>
                       UPV {activeModel.upv_min ?? "--"}–{activeModel.upv_max ?? "--"} m/s • RH{" "}
                       {activeModel.rh_min ?? "--"}–{activeModel.rh_max ?? "--"}
                     </Text>
                   </View>
                 ) : (
-                  <View className="rounded-xl bg-slate-800 p-4">
-                    <Text className="text-white font-semibold mb-1">
+                  <View className="rounded-xl p-4" style={{ backgroundColor: theme.surface }}>
+                    <Text className="font-semibold mb-1" style={{ color: theme.textPrimary }}>
                       No active model
                     </Text>
-                    <Text className="text-slate-400 text-xs">
+                    <Text className="text-xs" style={{ color: theme.textMuted }}>
                       Generate a model in Calibration to see coefficients here.
                     </Text>
                   </View>
                 )}
                 <Link href="/calibration" asChild>
-                  <TouchableOpacity className="rounded-xl bg-slate-800 p-4 active:bg-slate-700">
-                    <Text className="text-white font-semibold mb-1">
+                  <TouchableOpacity className="rounded-xl p-4" style={{ backgroundColor: theme.surface }}>
+                    <Text className="font-semibold mb-1" style={{ color: theme.textPrimary }}>
                       Calibration Points
                     </Text>
-                    <Text className="text-slate-400 text-xs">
+                    <Text className="text-xs" style={{ color: theme.textMuted }}>
                       View all core strengths and regression status.
                     </Text>
                   </TouchableOpacity>

@@ -6,6 +6,7 @@ import Input from "../../../../components/ui/Input";
 import Button from "../../../../components/ui/Button";
 import { updateMember, listMembers } from "../../../../services/projectService";
 import { useAuthStore } from "../../../../store/authStore";
+import { getThemeColors, useThemeStore } from "../../../../store/themeStore";
 
 export default function EditMemberScreen() {
   const router = useRouter();
@@ -21,6 +22,8 @@ export default function EditMemberScreen() {
   const projectId = params.projectId as string | undefined;
   const memberId = params.memberId as string | undefined;
   const { token } = useAuthStore();
+  const { mode } = useThemeStore();
+  const theme = getThemeColors(mode);
 
   const [memberCode, setMemberCode] = useState("");
   const [type, setType] = useState("");
@@ -103,15 +106,17 @@ export default function EditMemberScreen() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: 150 }}
       >
-        <Text className="text-xl font-bold text-white mb-1">
+        <Text className="text-xl font-bold mb-1" style={{ color: theme.textPrimary }}>
           Edit Member
         </Text>
-        <Text className="text-slate-300 mb-6">
+        <Text className="mb-6" style={{ color: theme.textSecondary }}>
           Update structural member details.
         </Text>
 
         {loadingMember ? (
-          <Text className="text-slate-400 text-sm">Loading...</Text>
+          <Text className="text-sm" style={{ color: theme.textSecondary }}>
+            Loading...
+          </Text>
         ) : (
           <>
             <Input
@@ -155,7 +160,9 @@ export default function EditMemberScreen() {
         )}
 
         <TouchableOpacity onPress={() => router.back()} className="mt-3">
-          <Text className="text-emerald-400 text-xs">Cancel</Text>
+          <Text className="text-xs" style={{ color: theme.accent }}>
+            Cancel
+          </Text>
         </TouchableOpacity>
       </ScrollView>
     </Screen>

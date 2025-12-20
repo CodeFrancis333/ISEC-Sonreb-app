@@ -5,9 +5,12 @@ import Screen from "../../components/layout/Screen";
 import Input from "../../components/ui/Input";
 import Button from "../../components/ui/Button";
 import { forgotPassword, resetPassword } from "../../services/authService";
+import { getThemeColors, useThemeStore } from "../../store/themeStore";
 
 export default function ForgotPasswordScreen() {
   const router = useRouter();
+  const { mode } = useThemeStore();
+  const theme = getThemeColors(mode);
   const [email, setEmail] = useState("");
   const [uid, setUid] = useState("");
   const [token, setToken] = useState("");
@@ -60,17 +63,21 @@ export default function ForgotPasswordScreen() {
   return (
     <Screen>
       <View className="flex-1 justify-center">
-        <Text className="text-xs text-emerald-400 uppercase mb-1">
+        <Text className="text-xs uppercase mb-1" style={{ color: theme.accent }}>
           Forgot password
         </Text>
-        <Text className="text-2xl font-bold text-white mb-2">
+        <Text className="text-2xl font-bold mb-2" style={{ color: theme.textPrimary }}>
           Reset your account
         </Text>
-        <Text className="text-slate-400 text-xs mb-6">
+        <Text className="text-xs mb-6" style={{ color: theme.textSecondary }}>
           Request a reset token, then set a new password.
         </Text>
 
-        {info ? <Text className="text-emerald-300 text-xs mb-3">{info}</Text> : null}
+        {info ? (
+          <Text className="text-xs mb-3" style={{ color: theme.success }}>
+            {info}
+          </Text>
+        ) : null}
 
         <View className="gap-3 mb-4">
           <Input
@@ -111,7 +118,9 @@ export default function ForgotPasswordScreen() {
         </View>
 
         <Link href="/(auth)/login" asChild>
-          <Text className="text-emerald-400 text-xs mt-4">Back to login</Text>
+          <Text className="text-xs mt-4" style={{ color: theme.accent }}>
+            Back to login
+          </Text>
         </Link>
       </View>
     </Screen>

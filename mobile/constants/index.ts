@@ -69,4 +69,5 @@ export const STORAGE_KEYS = {
   AUTH_TOKEN: "sonreb_auth_token",
   CURRENT_USER: "sonreb_current_user",
   SETTINGS: "sonreb_settings",
+  THEME_MODE: "sonreb_theme_mode",
 };

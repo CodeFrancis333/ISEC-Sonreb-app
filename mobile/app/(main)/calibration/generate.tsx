@@ -5,16 +5,18 @@ import Screen from "../../../components/layout/Screen";
 import Button from "../../../components/ui/Button";
 import { generateCalibrationModel, setActiveCalibrationModel } from "../../../services/calibrationService";
 import { useAuthStore } from "../../../store/authStore";
+import { getThemeColors, useThemeStore } from "../../../store/themeStore";
 
 export default function GenerateModelScreen() {
   const router = useRouter();
   const params = useLocalSearchParams<{ projectId?: string }>();
   const projectId = params.projectId as string | undefined;
   const { token } = useAuthStore();
+  const { mode } = useThemeStore();
+  const theme = getThemeColors(mode);
   const [useCarbonation, setUseCarbonation] = useState(true);
   const [loading, setLoading] = useState(false);
 
-  // Dummy numbers for now
   const pointsAvailable = 8;
   const baseModelReady = pointsAvailable >= 5;
   const carbonationModelReady = pointsAvailable >= 8;
@@ -58,69 +60,65 @@ export default function GenerateModelScreen() {
 
   return (
     <Screen>
-      <ScrollView className="flex-1">
-        <Text className="text-xl font-bold text-white mb-1">
+      <ScrollView className="flex-1" contentContainerStyle={{ paddingBottom: 150 }}>
+        <Text className="text-xl font-bold mb-1" style={{ color: theme.textPrimary }}>
           Generate Model
         </Text>
-        <Text className="text-slate-300 mb-6">
+        <Text className="mb-6" style={{ color: theme.textSecondary }}>
           Use your calibration cores to generate a project-specific SonReb model.
         </Text>
 
-        <View className="rounded-xl bg-slate-800 p-4 mb-4">
+        <View className="rounded-xl p-4 mb-4" style={{ backgroundColor: theme.surface }}>
           <View className="flex-row justify-between items-center">
             <View>
-              <Text className="text-slate-200 text-sm mb-1">
+              <Text className="text-sm mb-1" style={{ color: theme.textPrimary }}>
                 Use carbonation depth in model?
               </Text>
-              <Text className="text-slate-400 text-xs">
+              <Text className="text-xs" style={{ color: theme.textSecondary }}>
                 Requires at least 8 points with carbonation data.
               </Text>
             </View>
             <Switch
               value={useCarbonation}
               onValueChange={setUseCarbonation}
+              trackColor={{ false: theme.border, true: theme.accent }}
+              thumbColor={theme.surfaceAlt}
             />
           </View>
         </View>
 
-        <View className="rounded-xl bg-slate-800 p-4 mb-4">
-          <Text className="text-slate-200 text-sm mb-2">
+        <View className="rounded-xl p-4 mb-4" style={{ backgroundColor: theme.surface }}>
+          <Text className="text-sm mb-2" style={{ color: theme.textPrimary }}>
             Calibration Points
           </Text>
-          <Text className="text-slate-300 text-xs">
+          <Text className="text-xs" style={{ color: theme.textSecondary }}>
             Available points: {pointsAvailable}
           </Text>
-          <Text className="text-slate-300 text-xs mt-1">
+          <Text className="text-xs mt-1" style={{ color: theme.textSecondary }}>
             Basic model (UPV + RH):{" "}
-            <Text className={baseModelReady ? "text-emerald-300" : "text-amber-300"}>
-              {baseModelReady ? "Ready ✔" : "Not enough points"}
+            <Text style={{ color: baseModelReady ? theme.success : theme.warning }}>
+              {baseModelReady ? "Ready" : "Not enough points"}
             </Text>
           </Text>
-          <Text className="text-slate-300 text-xs mt-1">
+          <Text className="text-xs mt-1" style={{ color: theme.textSecondary }}>
             Model with carbonation:{" "}
-            <Text
-              className={
-                carbonationModelReady ? "text-emerald-300" : "text-amber-300"
-              }
-            >
-              {carbonationModelReady ? "Ready ✔" : "Not enough points"}
+            <Text style={{ color: carbonationModelReady ? theme.success : theme.warning }}>
+              {carbonationModelReady ? "Ready" : "Not enough points"}
             </Text>
           </Text>
         </View>
 
-        {/* Dummy model preview */}
-        <View className="rounded-xl bg-slate-800 p-4 mb-4">
-          <Text className="text-slate-200 text-sm mb-2">
+        <View className="rounded-xl p-4 mb-4" style={{ backgroundColor: theme.surface }}>
+          <Text className="text-sm mb-2" style={{ color: theme.textPrimary }}>
             Model Preview (Dummy)
           </Text>
-          <Text className="text-slate-100 text-xs font-mono">
-            fc′ = 5.32 + 0.012·R + 0.0041·V{" "}
-            {useCarbonation && "+ 0.09·d₍c₎"}
+          <Text className="text-xs font-mono" style={{ color: theme.textPrimary }}>
+            fc = 5.32 + 0.012*R + 0.0041*V{useCarbonation ? " + 0.09*cd" : ""}
           </Text>
-          <Text className="text-slate-400 text-xs mt-2">
-            R² = 0.89 • Points used: {pointsAvailable}
+          <Text className="text-xs mt-2" style={{ color: theme.textSecondary }}>
+            r2 = 0.89 | Points used: {pointsAvailable}
           </Text>
-          <Text className="text-slate-500 text-xs mt-2">
+          <Text className="text-xs mt-2" style={{ color: theme.textMuted }}>
             (Later, this will be replaced by real regression from the backend.)
           </Text>
         </View>
@@ -129,11 +127,7 @@ export default function GenerateModelScreen() {
 
         <View className="h-3" />
 
-        <Button
-          title="Set as Active Model"
-          onPress={handleSetActive}
-          variant="secondary"
-        />
+        <Button title="Set as Active Model" onPress={handleSetActive} variant="secondary" />
       </ScrollView>
     </Screen>
   );

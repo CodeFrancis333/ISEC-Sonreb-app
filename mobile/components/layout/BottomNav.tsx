@@ -3,6 +3,7 @@ import { View, TouchableOpacity, Text } from "react-native";
 import { Link, usePathname, Href } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useThemeStore, getThemeColors } from "../../store/themeStore";
 
 type NavItem = {
   href: Href;
@@ -23,16 +24,21 @@ const items: NavItem[] = [
 
 export default function BottomNav() {
   const pathname = usePathname();
+  const { mode } = useThemeStore();
+  const theme = getThemeColors(mode);
 
   return (
     <SafeAreaView edges={["bottom"]} className="bg-transparent">
       <View
-        className="border-t border-slate-800 bg-slate-900 px-2 py-2 flex-row justify-between items-center"
+        className="px-2 py-2 flex-row justify-between items-center"
         style={{
           position: "absolute",
           bottom: 0,
           left: 0,
           right: 0,
+          backgroundColor: theme.navBg,
+          borderTopColor: theme.border,
+          borderTopWidth: 1,
         }}
       >
         {items.map((item) => {
@@ -52,10 +58,15 @@ export default function BottomNav() {
                 <Ionicons
                   name={(isActive ? item.activeIcon : item.icon) as any}
                   size={22}
-                  color={isActive ? "#34d399" : "#94a3b8"}
+                  color={isActive ? theme.navActive : theme.navInactive}
                 />
                 {isActive ? (
-                  <Text className="text-emerald-300 text-[11px] mt-1">{item.label}</Text>
+                  <Text
+                    className="text-[11px] mt-1"
+                    style={{ color: theme.navActive }}
+                  >
+                    {item.label}
+                  </Text>
                 ) : null}
               </TouchableOpacity>
             </Link>

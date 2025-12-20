@@ -8,10 +8,13 @@ import { listProjects, Project } from "../../../services/projectService";
 import { createReading } from "../../../services/readingService";
 import { getActiveModel, CalibrationModel } from "../../../services/calibrationService";
 import { useRouter } from "expo-router";
+import { getThemeColors, useThemeStore } from "../../../store/themeStore";
 
 export default function NewReadingScreen() {
     const router = useRouter();
     const { token } = useAuthStore();
+    const { mode } = useThemeStore();
+    const theme = getThemeColors(mode);
 
   const [projects, setProjects] = useState<Project[]>([]);
   const [projectId, setProjectId] = useState<string | null>(null);
@@ -83,14 +86,16 @@ export default function NewReadingScreen() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: 150 }}
       >
-        <Text className="text-xl font-bold text-white mb-1">
+        <Text className="text-xl font-bold mb-1" style={{ color: theme.textPrimary }}>
           New Reading
         </Text>
-        <Text className="text-slate-300 mb-6">
+        <Text className="mb-6" style={{ color: theme.textSecondary }}>
           Enter field measurements for UPV, RH, and optional carbonation.
         </Text>
 
-        <Text className="text-slate-200 text-sm mb-2">Project</Text>
+        <Text className="text-sm mb-2" style={{ color: theme.textPrimary }}>
+          Project
+        </Text>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} className="mb-3">
           <View className="flex-row gap-2">
             {projects.map((p) => (
@@ -103,11 +108,16 @@ export default function NewReadingScreen() {
                     .then(setModelInfo)
                     .catch(() => setModelInfo(null));
                 }}
-                className={`px-3 py-2 rounded-full border ${
-                  projectId === p.id ? "border-emerald-500 bg-emerald-500/10" : "border-slate-600"
-                }`}
+                className="px-3 py-2 rounded-full border"
+                style={{
+                  borderColor: projectId === p.id ? theme.accent : theme.border,
+                  backgroundColor: projectId === p.id ? `${theme.accent}1A` : "transparent",
+                }}
               >
-                <Text className={projectId === p.id ? "text-white text-xs" : "text-slate-200 text-xs"}>
+                <Text
+                  className="text-xs"
+                  style={{ color: projectId === p.id ? theme.textPrimary : theme.textSecondary }}
+                >
                   {p.name}
                 </Text>
               </TouchableOpacity>
@@ -154,7 +164,9 @@ export default function NewReadingScreen() {
             ? `Above calibrated RH max (${modelInfo?.rh_max})`
             : "";
           return warning ? (
-            <Text className="text-rose-300 text-[11px] text-right -mt-2 mb-2">{warning}</Text>
+            <Text className="text-[11px] text-right -mt-2 mb-2" style={{ color: theme.error }}>
+              {warning}
+            </Text>
           ) : null;
         })()}
 
@@ -167,13 +179,18 @@ export default function NewReadingScreen() {
         />
 
         {error ? (
-          <View className="bg-rose-500/10 border border-rose-500/40 rounded-lg p-3 mb-3">
-            <Text className="text-rose-100 text-xs">{error}</Text>
+          <View
+            className="rounded-lg p-3 mb-3 border"
+            style={{ backgroundColor: theme.surfaceAlt, borderColor: theme.error }}
+          >
+            <Text className="text-xs" style={{ color: theme.error }}>
+              {error}
+            </Text>
           </View>
         ) : null}
 
         {loading ? (
-          <ActivityIndicator color="#34d399" />
+          <ActivityIndicator color={theme.accent} />
         ) : (
           <Button
             title="Save Reading"

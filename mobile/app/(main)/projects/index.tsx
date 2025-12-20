@@ -5,10 +5,13 @@ import Screen from "../../../components/layout/Screen";
 import { listProjects, Project, deleteProject } from "../../../services/projectService";
 import { useAuthStore } from "../../../store/authStore";
 import { Alert } from "react-native";
+import { useThemeStore, getThemeColors } from "../../../store/themeStore";
 
 export default function ProjectsListScreen() {
   const { token } = useAuthStore();
   const router = useRouter();
+  const { mode } = useThemeStore();
+  const theme = getThemeColors(mode);
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -44,23 +47,30 @@ export default function ProjectsListScreen() {
     <Screen showNav>
       <View className="flex-row items-center justify-between mb-4">
         <View>
-          <Text className="text-xs text-emerald-400 uppercase">
+          <Text className="text-xs uppercase" style={{ color: theme.accent }}>
             Projects
           </Text>
-          <Text className="text-xl font-bold text-white">
+          <Text className="text-xl font-bold" style={{ color: theme.textPrimary }}>
             All Projects
           </Text>
         </View>
         <Link href="/projects/new" asChild>
-          <TouchableOpacity className="rounded-xl bg-emerald-600 px-3 py-2">
-            <Text className="text-white text-sm font-semibold">+ New</Text>
+          <TouchableOpacity className="rounded-xl px-3 py-2" style={{ backgroundColor: theme.accent }}>
+            <Text className="text-sm font-semibold" style={{ color: theme.textPrimary }}>
+              + New
+            </Text>
           </TouchableOpacity>
         </Link>
       </View>
 
       {error ? (
-        <View className="bg-rose-500/10 border border-rose-500/40 rounded-lg p-3 mb-3">
-          <Text className="text-rose-100 text-xs">{error}</Text>
+        <View
+          className="rounded-lg p-3 mb-3"
+          style={{ backgroundColor: `${theme.error}22`, borderColor: theme.error, borderWidth: 1 }}
+        >
+          <Text className="text-xs" style={{ color: theme.error }}>
+            {error}
+          </Text>
         </View>
       ) : null}
 
@@ -76,7 +86,7 @@ export default function ProjectsListScreen() {
         >
           <View className="gap-3">
             {projects.map((project) => (
-              <View key={project.id} className="rounded-xl bg-slate-800 p-4">
+              <View key={project.id} className="rounded-xl p-4" style={{ backgroundColor: theme.surface }}>
                 <Link
                   href={{
                     pathname: "/projects/[id]",
@@ -84,34 +94,38 @@ export default function ProjectsListScreen() {
                   }}
                   asChild
                 >
-                  <TouchableOpacity className="active:bg-slate-700 rounded-lg p-1">
-                    <Text className="text-white font-semibold">
+                  <TouchableOpacity className="rounded-lg p-1">
+                    <Text className="font-semibold" style={{ color: theme.textPrimary }}>
                       {project.name}
                     </Text>
-                    <Text className="text-slate-400 text-xs mt-1">
+                    <Text className="text-xs mt-1" style={{ color: theme.textMuted }}>
                       {project.location}
                     </Text>
-                    <Text className="text-slate-500 text-[11px] mt-1">
+                    <Text className="text-[11px] mt-1" style={{ color: theme.textDisabled }}>
                       Age: {(project as any).structure_age ?? "--"} yrs · Lat/Long: {(project as any).latitude ?? "--"}, {(project as any).longitude ?? "--"}
                     </Text>
 
                     <View className="flex-row mt-3 justify-between items-center">
-                      <Text className="text-xs text-slate-400">
+                      <Text className="text-xs" style={{ color: theme.textMuted }}>
                         {(project as any).readings_count ?? 0} readings
                       </Text>
                       <View
-                        className={`px-2 py-1 rounded-full ${
-                          project.status === "calibrated"
-                            ? "bg-emerald-500/20"
-                            : "bg-amber-500/10"
-                        }`}
+                        className="px-2 py-1 rounded-full"
+                        style={{
+                          backgroundColor:
+                            project.status === "calibrated"
+                              ? `${theme.success}22`
+                              : `${theme.warning}22`,
+                        }}
                       >
                         <Text
-                          className={`text-xs font-semibold ${
-                            project.status === "calibrated"
-                              ? "text-emerald-300"
-                              : "text-amber-300"
-                          }`}
+                          className="text-xs font-semibold"
+                          style={{
+                            color:
+                              project.status === "calibrated"
+                                ? theme.success
+                                : theme.warning,
+                          }}
                         >
                           {project.status === "calibrated" ? "Calibrated" : "No model"}
                         </Text>
@@ -139,12 +153,14 @@ export default function ProjectsListScreen() {
                   }}
                   className="mt-2"
                 >
-                  <Text className="text-rose-300 text-xs">Delete</Text>
+                  <Text className="text-xs" style={{ color: theme.error }}>Delete</Text>
                 </TouchableOpacity>
               </View>
             ))}
             {!projects.length && !loading && (
-              <Text className="text-slate-400 text-xs">No projects yet. Tap + New to add one.</Text>
+              <Text className="text-xs" style={{ color: theme.textMuted }}>
+                No projects yet. Tap + New to add one.
+              </Text>
             )}
           </View>
         </ScrollView>

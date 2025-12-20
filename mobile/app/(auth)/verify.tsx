@@ -6,6 +6,7 @@ import Input from "../../components/ui/Input";
 import Button from "../../components/ui/Button";
 import { sendVerification, confirmVerification } from "../../services/authService";
 import { useAuthStore } from "../../store/authStore";
+import { getThemeColors, useThemeStore } from "../../store/themeStore";
 
 export default function VerifyEmailScreen() {
   const router = useRouter();
@@ -16,6 +17,8 @@ export default function VerifyEmailScreen() {
   const [loading, setLoading] = useState(false);
   const [info, setInfo] = useState<string | null>(null);
   const { setUserAndToken } = useAuthStore();
+  const { mode } = useThemeStore();
+  const theme = getThemeColors(mode);
 
   const handleSend = async () => {
     if (!email) {
@@ -60,17 +63,21 @@ export default function VerifyEmailScreen() {
   return (
     <Screen>
       <View className="flex-1 justify-center">
-        <Text className="text-xs text-emerald-400 uppercase mb-1">
+        <Text className="text-xs uppercase mb-1" style={{ color: theme.accent }}>
           Verify email
         </Text>
-        <Text className="text-2xl font-bold text-white mb-2">
+        <Text className="text-2xl font-bold mb-2" style={{ color: theme.textPrimary }}>
           Enter your OTP
         </Text>
-        <Text className="text-slate-400 text-xs mb-6">
+        <Text className="text-xs mb-6" style={{ color: theme.textSecondary }}>
           We sent a 6-digit code to your email. Use it to activate your account.
         </Text>
 
-        {info ? <Text className="text-emerald-300 text-xs mb-3">{info}</Text> : null}
+        {info ? (
+          <Text className="text-xs mb-3" style={{ color: theme.success }}>
+            {info}
+          </Text>
+        ) : null}
 
         <View className="gap-3 mb-4">
           <Input
@@ -104,7 +111,9 @@ export default function VerifyEmailScreen() {
         </View>
 
         <TouchableOpacity onPress={() => router.push("/(auth)/login")}>
-          <Text className="text-emerald-400 text-xs mt-4">Back to login</Text>
+          <Text className="text-xs mt-4" style={{ color: theme.accent }}>
+            Back to login
+          </Text>
         </TouchableOpacity>
       </View>
     </Screen>

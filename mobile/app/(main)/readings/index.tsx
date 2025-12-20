@@ -6,10 +6,13 @@ import Screen from "../../../components/layout/Screen";
 import { listReadings, listReadingsByProject, deleteReading, Reading } from "../../../services/readingService";
 import { listProjects, Project } from "../../../services/projectService";
 import { useAuthStore } from "../../../store/authStore";
+import { getThemeColors, useThemeStore } from "../../../store/themeStore";
 
 export default function AllReadingsListScreen() {
   const { token } = useAuthStore();
   const router = useRouter();
+  const { mode } = useThemeStore();
+  const theme = getThemeColors(mode);
   const [projects, setProjects] = useState<Project[]>([]);
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
   const [showProjectPicker, setShowProjectPicker] = useState(false);
@@ -74,29 +77,39 @@ export default function AllReadingsListScreen() {
   return (
     <Screen showNav>
       <View className="mb-4">
-        <Text className="text-xs text-emerald-400 uppercase">Readings</Text>
-        <Text className="text-xl font-bold text-white">All Readings</Text>
-        <Text className="text-slate-400 text-xs mt-1">Browse all saved readings across projects.</Text>
+        <Text className="text-xs uppercase" style={{ color: theme.accent }}>
+          Readings
+        </Text>
+        <Text className="text-xl font-bold" style={{ color: theme.textPrimary }}>
+          All Readings
+        </Text>
+        <Text className="text-xs mt-1" style={{ color: theme.textSecondary }}>
+          Browse all saved readings across projects.
+        </Text>
       </View>
 
       <View className="mb-3">
-        <Text className="text-slate-200 text-sm mb-1">Select Project Folder</Text>
+        <Text className="text-sm mb-1" style={{ color: theme.textPrimary }}>
+          Select Project Folder
+        </Text>
         <TouchableOpacity
           onPress={() => setShowProjectPicker((prev) => !prev)}
-          className="border border-slate-600 rounded-lg px-3 py-3 bg-slate-800"
+          className="border rounded-lg px-3 py-3"
+          style={{ borderColor: theme.border, backgroundColor: theme.surface }}
         >
-          <Text className="text-slate-100 text-xs">
+          <Text className="text-xs" style={{ color: theme.textPrimary }}>
             {projects.find((p) => p.id === selectedProjectId)?.name || "Choose project"}
           </Text>
         </TouchableOpacity>
         {showProjectPicker && (
-          <View className="mt-2 border border-slate-600 rounded-lg bg-slate-800">
+          <View className="mt-2 border rounded-lg" style={{ borderColor: theme.border, backgroundColor: theme.surface }}>
             <TextInput
               placeholder="Search project"
-              placeholderTextColor="#94a3b8"
+              placeholderTextColor={theme.textMuted}
               value={projectSearch}
               onChangeText={setProjectSearch}
-              className="px-3 py-2 text-slate-100 text-xs border-b border-slate-700"
+              className="px-3 py-2 text-xs border-b"
+              style={{ color: theme.textPrimary, borderBottomColor: theme.border }}
             />
             <ScrollView style={{ maxHeight: 220 }}>
               {projects
@@ -110,7 +123,9 @@ export default function AllReadingsListScreen() {
                     }}
                     className="px-3 py-2"
                   >
-                    <Text className="text-slate-100 text-xs">{p.name}</Text>
+                    <Text className="text-xs" style={{ color: theme.textPrimary }}>
+                      {p.name}
+                    </Text>
                   </TouchableOpacity>
                 ))}
             </ScrollView>
@@ -119,14 +134,19 @@ export default function AllReadingsListScreen() {
       </View>
 
       {error ? (
-        <View className="bg-rose-500/10 border border-rose-500/40 rounded-lg p-3 mb-3">
-          <Text className="text-rose-100 text-xs">{error}</Text>
+        <View
+          className="rounded-lg p-3 mb-3 border"
+          style={{ backgroundColor: theme.surfaceAlt, borderColor: theme.error }}
+        >
+          <Text className="text-xs" style={{ color: theme.error }}>
+            {error}
+          </Text>
         </View>
       ) : null}
 
       {loading ? (
         <View className="items-center justify-center py-6">
-          <ActivityIndicator color="#34d399" />
+          <ActivityIndicator color={theme.accent} />
         </View>
       ) : (
         <ScrollView
@@ -144,8 +164,11 @@ export default function AllReadingsListScreen() {
                   }}
                   asChild
                 >
-                  <TouchableOpacity className="rounded-xl bg-slate-800 p-4 active:bg-slate-700">
-                    <Text className="text-white font-semibold">
+                  <TouchableOpacity
+                    className="rounded-xl p-4"
+                    style={{ backgroundColor: theme.surface }}
+                  >
+                    <Text className="font-semibold" style={{ color: theme.textPrimary }}>
                       {(() => {
                         const projectName = ((reading as any).project_name as string) || reading.project;
                         const memberDisplay =
@@ -161,17 +184,21 @@ export default function AllReadingsListScreen() {
                       })()}
                     </Text>
                     <Text
-                      className={`text-xs mt-1 ${
-                        reading.rating === "GOOD"
-                          ? "text-emerald-300"
-                          : reading.rating === "FAIR"
-                          ? "text-amber-300"
-                          : "text-rose-300"
-                      }`}
+                      className="text-xs mt-1"
+                      style={{
+                        color:
+                          reading.rating === "GOOD"
+                            ? theme.success
+                            : reading.rating === "FAIR"
+                            ? theme.warning
+                            : theme.error,
+                      }}
                     >
                       fc' est. {reading.estimated_fc.toFixed(1)} MPa • {reading.rating}
                     </Text>
-                    <Text className="text-slate-500 text-xs mt-2">Model: {reading.model_used}</Text>
+                    <Text className="text-xs mt-2" style={{ color: theme.textMuted }}>
+                      Model: {reading.model_used}
+                    </Text>
                   </TouchableOpacity>
                 </Link>
                 <View className="flex-row gap-4 mt-1">
@@ -196,7 +223,9 @@ export default function AllReadingsListScreen() {
                     asChild
                   >
                     <TouchableOpacity>
-                      <Text className="text-emerald-300 text-xs">Edit</Text>
+                      <Text className="text-xs" style={{ color: theme.accent }}>
+                        Edit
+                      </Text>
                     </TouchableOpacity>
                   </Link>
                   <TouchableOpacity
@@ -222,12 +251,18 @@ export default function AllReadingsListScreen() {
                       );
                     }}
                   >
-                    <Text className="text-rose-300 text-xs">Delete</Text>
+                    <Text className="text-xs" style={{ color: theme.error }}>
+                      Delete
+                    </Text>
                   </TouchableOpacity>
                 </View>
               </View>
             ))}
-            {!readings.length && <Text className="text-slate-400 text-xs">No readings yet.</Text>}
+            {!readings.length && (
+              <Text className="text-xs" style={{ color: theme.textSecondary }}>
+                No readings yet.
+              </Text>
+            )}
           </View>
         </ScrollView>
       )}

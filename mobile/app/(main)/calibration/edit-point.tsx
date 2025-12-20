@@ -8,6 +8,7 @@ import { updateCalibrationPoint } from "../../../services/calibrationService";
 import { useAuthStore } from "../../../store/authStore";
 import { listMembers, Member } from "../../../services/projectService";
 import Select from "../../../components/ui/Select";
+import { getThemeColors, useThemeStore } from "../../../store/themeStore";
 
 export default function EditCalibrationPointScreen() {
   const router = useRouter();
@@ -24,6 +25,8 @@ export default function EditCalibrationPointScreen() {
   const pointId = params.pointId as string | undefined;
   const projectId = params.projectId as string | undefined;
   const { token } = useAuthStore();
+  const { mode } = useThemeStore();
+  const theme = getThemeColors(mode);
 
   const [memberId, setMemberId] = useState<string | null>(params.member ? String(params.member) : null);
   const [members, setMembers] = useState<Member[]>([]);
@@ -98,10 +101,10 @@ export default function EditCalibrationPointScreen() {
         contentContainerStyle={{ paddingBottom: 150 }}
         showsVerticalScrollIndicator={false}
       >
-        <Text className="text-xl font-bold text-white mb-1">
+        <Text className="text-xl font-bold mb-1" style={{ color: theme.textPrimary }}>
           Edit Calibration Point
         </Text>
-        <Text className="text-slate-300 mb-6">
+        <Text className="mb-6" style={{ color: theme.textSecondary }}>
           Update field NDT readings and corresponding core strength.
         </Text>
 
@@ -114,7 +117,7 @@ export default function EditCalibrationPointScreen() {
           }}
         />
         {showMemberList && members.length > 0 && (
-          <View className="mb-3 rounded-xl border border-slate-700 bg-slate-800/90">
+          <View className="mb-3 rounded-xl border" style={{ borderColor: theme.border, backgroundColor: theme.surface }}>
             {members.map((m) => (
               <TouchableOpacity
                 key={m.id}
@@ -122,20 +125,25 @@ export default function EditCalibrationPointScreen() {
                   setMemberId(m.id);
                   setShowMemberList(false);
                 }}
-                className={`px-3 py-2 ${memberId === m.id ? "bg-emerald-500/10" : ""}`}
+                className="px-3 py-2"
+                style={{ backgroundColor: memberId === m.id ? `${theme.accent}1A` : "transparent" }}
               >
-                <Text className="text-white text-sm">{m.member_id}</Text>
-                <Text className="text-slate-400 text-xs">
+                <Text className="text-sm" style={{ color: theme.textPrimary }}>
+                  {m.member_id}
+                </Text>
+                <Text className="text-xs" style={{ color: theme.textSecondary }}>
                   {m.type}
-                  {m.level ? ` → ${m.level}` : ""}
-                  {m.gridline ? ` → Grid ${m.gridline}` : ""}
+                  {m.level ? ` | ${m.level}` : ""}
+                  {m.gridline ? ` | Grid ${m.gridline}` : ""}
                 </Text>
               </TouchableOpacity>
             ))}
           </View>
         )}
         {membersError ? (
-          <Text className="text-rose-300 text-xs mb-2">{membersError}</Text>
+          <Text className="text-xs mb-2" style={{ color: theme.error }}>
+            {membersError}
+          </Text>
         ) : null}
 
         <Input
@@ -185,7 +193,9 @@ export default function EditCalibrationPointScreen() {
         />
 
         <TouchableOpacity onPress={() => router.back()} className="mt-3">
-          <Text className="text-emerald-400 text-xs">Cancel</Text>
+          <Text className="text-xs" style={{ color: theme.accent }}>
+            Cancel
+          </Text>
         </TouchableOpacity>
       </ScrollView>
     </Screen>

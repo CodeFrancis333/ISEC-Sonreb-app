@@ -2,14 +2,12 @@ import React, { useEffect, useMemo, useState } from "react";
 import { View, Text, ScrollView, ActivityIndicator, TouchableOpacity } from "react-native";
 import { useAuthStore } from "../../../store/authStore";
 import Screen from "../../../components/layout/Screen";
-import {
-  getCalibrationDiagnostics,
-  CalibrationDiagnostics,
-} from "../../../services/calibrationService";
+import { getCalibrationDiagnostics, CalibrationDiagnostics } from "../../../services/calibrationService";
 import { useLocalSearchParams } from "expo-router";
 import { ScatterChart } from "../../../components/charts/ScatterChart";
 import { HistogramChart } from "../../../components/charts/HistogramChart";
 import { HistogramBin } from "../../../services/projectService";
+import { getThemeColors, useThemeStore } from "../../../store/themeStore";
 
 function buildResidualBins(residuals: number[], binCount = 8): HistogramBin[] {
   if (!residuals.length) return [];
@@ -35,6 +33,8 @@ function buildResidualBins(residuals: number[], binCount = 8): HistogramBin[] {
 export default function ActiveModelSummaryScreen() {
   const { projectId } = useLocalSearchParams<{ projectId?: string }>();
   const { token } = useAuthStore();
+  const { mode } = useThemeStore();
+  const theme = getThemeColors(mode);
   const [diagnostics, setDiagnostics] = useState<CalibrationDiagnostics | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -75,9 +75,7 @@ export default function ActiveModelSummaryScreen() {
 
   const equation =
     model && model.use_carbonation && model.a3
-      ? `fc' = ${model.a0.toFixed(3)} * RH^${model.a1.toFixed(3)} * UPV^${model.a2.toFixed(
-          3
-        )} * cd^${model.a3.toFixed(3)}`
+      ? `fc' = ${model.a0.toFixed(3)} * RH^${model.a1.toFixed(3)} * UPV^${model.a2.toFixed(3)} * cd^${model.a3.toFixed(3)}`
       : model
       ? `fc' = ${model.a0.toFixed(3)} * RH^${model.a1.toFixed(3)} * UPV^${model.a2.toFixed(3)}`
       : "";
@@ -85,58 +83,78 @@ export default function ActiveModelSummaryScreen() {
   return (
     <Screen showNav>
       <ScrollView className="flex-1" contentContainerStyle={{ paddingBottom: 80 }}>
-        <Text className="text-xs text-emerald-400 uppercase">Calibration</Text>
-        <Text className="text-xl font-bold text-white mb-1">Active Model</Text>
-        <Text className="text-slate-400 text-xs mb-4">
+        <Text className="text-xs uppercase" style={{ color: theme.accent }}>
+          Calibration
+        </Text>
+        <Text className="text-xl font-bold mb-1" style={{ color: theme.textPrimary }}>
+          Active Model
+        </Text>
+        <Text className="text-xs mb-4" style={{ color: theme.textSecondary }}>
           Scatter vs y=x shows bias/outliers. Power-law coefficients and residuals included.
         </Text>
 
         {loading && (
           <View className="items-center justify-center py-8">
-            <ActivityIndicator color="#34d399" />
+            <ActivityIndicator color={theme.accent} />
           </View>
         )}
 
         {error && (
-          <View className="bg-rose-500/10 border border-rose-500/40 rounded-lg p-3 mb-4">
-            <Text className="text-rose-100 text-sm">{error}</Text>
+          <View className="border rounded-lg p-3 mb-4" style={{ backgroundColor: theme.surfaceAlt, borderColor: theme.error }}>
+            <Text className="text-sm" style={{ color: theme.error }}>
+              {error}
+            </Text>
             <TouchableOpacity onPress={load} className="mt-2">
-              <Text className="text-emerald-300 text-xs">Retry</Text>
+              <Text className="text-xs" style={{ color: theme.accent }}>
+                Retry
+              </Text>
             </TouchableOpacity>
           </View>
         )}
 
         {!loading && !error && model && (
           <>
-            <View className="rounded-xl bg-slate-800 p-4 mb-3">
-              <Text className="text-slate-300 text-sm mb-1">Model (power-law)</Text>
-              <Text className="text-white text-sm font-semibold">{equation}</Text>
-              <Text className="text-slate-400 text-xs mt-1">
-                r² {model.r2.toFixed(2)} • RMSE {model.rmse?.toFixed(2) ?? "--"} MPa • Points {model.points_used}
+            <View className="rounded-xl p-4 mb-3" style={{ backgroundColor: theme.surface }}>
+              <Text className="text-sm mb-1" style={{ color: theme.textSecondary }}>
+                Model (power-law)
               </Text>
-              <Text className="text-slate-500 text-[11px] mt-1">
-                UPV {model.upv_min ?? "--"}–{model.upv_max ?? "--"} m/s • RH {model.rh_min ?? "--"}–{model.rh_max ?? "--"}
+              <Text className="text-sm font-semibold" style={{ color: theme.textPrimary }}>
+                {equation}
               </Text>
-              <Text className="text-slate-500 text-[11px] mt-1">
+              <Text className="text-xs mt-1" style={{ color: theme.textSecondary }}>
+                r2 {model.r2.toFixed(2)} | RMSE {model.rmse?.toFixed(2) ?? "--"} MPa | Points {model.points_used}
+              </Text>
+              <Text className="text-[11px] mt-1" style={{ color: theme.textMuted }}>
+                UPV {model.upv_min ?? "--"}-{model.upv_max ?? "--"} m/s | RH {model.rh_min ?? "--"}-{model.rh_max ?? "--"}
+              </Text>
+              <Text className="text-[11px] mt-1" style={{ color: theme.textMuted }}>
                 Carbonation: {model.use_carbonation ? "Yes" : "No"}
               </Text>
             </View>
 
-            <View className="rounded-xl bg-slate-800 p-4 mb-4">
-              <Text className="text-slate-300 text-sm mb-2">Predicted vs Measured</Text>
+            <View className="rounded-xl p-4 mb-4" style={{ backgroundColor: theme.surface }}>
+              <Text className="text-sm mb-2" style={{ color: theme.textSecondary }}>
+                Predicted vs Measured
+              </Text>
               {scatterPoints.length ? (
                 <ScatterChart points={scatterPoints} />
               ) : (
-                <Text className="text-slate-400 text-xs">No points available.</Text>
+                <Text className="text-xs" style={{ color: theme.textSecondary }}>
+                  No points available.
+                </Text>
               )}
             </View>
 
-            <View className="rounded-xl bg-slate-800 p-4">
-              <Text className="text-slate-300 text-sm mb-2">Residuals (Predicted - Measured)</Text>
+            <View className="rounded-xl p-4" style={{ backgroundColor: theme.surface }}>
+              <Text className="text-sm mb-2" style={{ color: theme.textSecondary }}>
+                Residuals (Predicted - Measured)
+              </Text>
               {residualBins.length ? (
                 <HistogramChart bins={residualBins} />
               ) : (
-                <Text className="text-slate-400 text-xs">No residuals available.</Text>
+                <Text className="text-xs" style={{ color: theme.textSecondary }}>
+                  No residuals available.
+                </Text>
               )}
             </View>
           </>

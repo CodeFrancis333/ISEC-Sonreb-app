@@ -7,12 +7,15 @@ import Input from "../../../../components/ui/Input";
 import Button from "../../../../components/ui/Button";
 import { createMember } from "../../../../services/projectService";
 import { useAuthStore } from "../../../../store/authStore";
+import { getThemeColors, useThemeStore } from "../../../../store/themeStore";
 
 export default function NewMemberScreen() {
   const router = useRouter();
   const params = useLocalSearchParams<{ projectId?: string }>();
   const projectId = params.projectId as string | undefined;
   const { token } = useAuthStore();
+  const { mode } = useThemeStore();
+  const theme = getThemeColors(mode);
 
   const [memberId, setMemberId] = useState("");
   const [type, setType] = useState("");
@@ -54,10 +57,10 @@ export default function NewMemberScreen() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: 150 }}
       >
-        <Text className="text-xl font-bold text-white mb-1">
+        <Text className="text-xl font-bold mb-1" style={{ color: theme.textPrimary }}>
           New Member
         </Text>
-        <Text className="text-slate-300 mb-6">
+        <Text className="mb-6" style={{ color: theme.textSecondary }}>
           Define a structural member (column, beam, slab, or wall) to
           organize SonReb readings per element.
         </Text>

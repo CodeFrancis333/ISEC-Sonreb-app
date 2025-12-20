@@ -1,6 +1,7 @@
 import React from "react";
 import { View, Text } from "react-native";
 import Svg, { G, Path } from "react-native-svg";
+import { getThemeColors, useThemeStore } from "../../store/themeStore";
 
 type Segment = {
   label: string;
@@ -12,6 +13,8 @@ interface PieChartProps {
   segments: Segment[];
   size?: number;
   innerRadius?: number;
+  labelColor?: string;
+  centerFill?: string;
 }
 
 function polarToCartesian(
@@ -41,7 +44,17 @@ function describeArc(
   return ["M", start.x, start.y, "A", radius, radius, 0, largeArcFlag, 0, end.x, end.y, "L", x, y, "Z"].join(" ");
 }
 
-export function PieChart({ segments, size = 180, innerRadius = 0 }: PieChartProps) {
+export function PieChart({
+  segments,
+  size = 180,
+  innerRadius = 0,
+  labelColor,
+  centerFill,
+}: PieChartProps) {
+  const { mode } = useThemeStore();
+  const theme = getThemeColors(mode);
+  const labelText = labelColor || theme.textSecondary;
+  const centerColor = centerFill || theme.appBg;
   const radius = size / 2;
   const total = segments.reduce((sum, s) => sum + s.value, 0);
 
@@ -67,13 +80,13 @@ export function PieChart({ segments, size = 180, innerRadius = 0 }: PieChartProp
           <G>
             <Path
               d={describeArc(radius, radius, innerRadius, 0, 360)}
-              fill="rgba(15,23,42,0.95)"
+              fill={centerColor}
             />
           </G>
         )}
       </Svg>
       <View className="mt-3">
-        <Text className="text-slate-300 text-xs text-center">
+        <Text className="text-xs text-center" style={{ color: labelText }}>
           Rating distribution
         </Text>
       </View>

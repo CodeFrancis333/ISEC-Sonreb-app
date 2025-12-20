@@ -6,6 +6,7 @@ import {
   TouchableOpacityProps,
   ActivityIndicator,
 } from "react-native";
+import { useThemeStore, getThemeColors } from "../../store/themeStore";
 
 type ButtonVariant = "primary" | "secondary" | "ghost" | "outline" | "danger";
 
@@ -16,34 +17,7 @@ export interface ButtonProps extends TouchableOpacityProps {
   children?: React.ReactNode; // allow <Button>Text</Button>
 }
 
-const variantStyles: Record<ButtonVariant, { container: string; text: string }> =
-  {
-    primary: {
-      container:
-        "bg-emerald-600 border border-emerald-500 active:bg-emerald-500",
-      text: "text-white",
-    },
-    secondary: {
-      container:
-        "bg-slate-800 border border-slate-700 active:bg-slate-700",
-      text: "text-slate-100",
-    },
-    ghost: {
-      container:
-        "bg-transparent border border-slate-700 active:bg-slate-800/60",
-      text: "text-slate-200",
-    },
-    outline: {
-      container:
-        "bg-transparent border border-emerald-600 active:bg-emerald-500/10",
-      text: "text-emerald-300",
-    },
-    danger: {
-      container:
-        "bg-red-600 border border-red-500 active:bg-red-500",
-      text: "text-white",
-    },
-  };
+const baseContainer = "rounded-xl px-4 py-3 items-center justify-center";
 
 export default function Button({
   variant = "primary",
@@ -54,7 +28,44 @@ export default function Button({
   className = "",
   ...rest
 }: ButtonProps) {
-  const styles = variantStyles[variant];
+  const { mode } = useThemeStore();
+  const theme = getThemeColors(mode);
+
+  const variantStyle = (() => {
+    switch (variant) {
+      case "secondary":
+        return {
+          backgroundColor: theme.surface,
+          borderColor: theme.border,
+          textColor: theme.textPrimary,
+        };
+      case "ghost":
+        return {
+          backgroundColor: "transparent",
+          borderColor: theme.border,
+          textColor: theme.textSecondary,
+        };
+      case "outline":
+        return {
+          backgroundColor: "transparent",
+          borderColor: theme.accent,
+          textColor: theme.accent,
+        };
+      case "danger":
+        return {
+          backgroundColor: theme.error,
+          borderColor: theme.error,
+          textColor: "#FFFFFF",
+        };
+      case "primary":
+      default:
+        return {
+          backgroundColor: theme.accent,
+          borderColor: theme.accentHover,
+          textColor: "#FFFFFF",
+        };
+    }
+  })();
 
   // Prefer title if provided, otherwise allow string children.
   const label =
@@ -66,15 +77,18 @@ export default function Button({
   return (
     <TouchableOpacity
       disabled={disabled || loading}
-      className={`rounded-xl px-4 py-3 items-center justify-center ${styles.container} ${
-        disabled || loading ? "opacity-60" : ""
-      } ${className}`}
+      className={`${baseContainer} ${disabled || loading ? "opacity-60" : ""} ${className}`}
+      style={{
+        backgroundColor: variantStyle.backgroundColor,
+        borderColor: variantStyle.borderColor,
+        borderWidth: 1,
+      }}
       {...rest}
     >
       {loading ? (
         <ActivityIndicator />
       ) : label ? (
-        <Text className={`text-sm font-semibold ${styles.text}`}>
+        <Text className="text-sm font-semibold" style={{ color: variantStyle.textColor }}>
           {label}
         </Text>
       ) : (

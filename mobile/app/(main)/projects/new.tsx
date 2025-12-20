@@ -7,10 +7,13 @@ import Button from "../../../components/ui/Button";
 import * as Location from "expo-location";
 import { createProject } from "../../../services/projectService";
 import { useAuthStore } from "../../../store/authStore";
+import { getThemeColors, useThemeStore } from "../../../store/themeStore";
 
 export default function NewProjectScreen() {
   const router = useRouter();
   const { token } = useAuthStore();
+  const { mode } = useThemeStore();
+  const theme = getThemeColors(mode);
   const [name, setName] = useState("");
   const [location, setLocation] = useState("");
   const [client, setClient] = useState("");
@@ -105,10 +108,10 @@ export default function NewProjectScreen() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: 150 }}
       >
-        <Text className="text-xl font-bold text-white mb-1">
+        <Text className="text-xl font-bold mb-1" style={{ color: theme.textPrimary }}>
           New Project
         </Text>
-        <Text className="text-slate-300 mb-6">
+        <Text className="mb-6" style={{ color: theme.textSecondary }}>
           Define the project information and design strength.
         </Text>
 
@@ -165,9 +168,12 @@ export default function NewProjectScreen() {
               setPendingLng(lon);
               setShowMapPicker(true);
             }}
-            className="px-3 py-2 rounded-lg bg-slate-700"
+            className="px-3 py-2 rounded-lg"
+            style={{ backgroundColor: theme.surfaceAlt }}
           >
-            <Text className="text-emerald-300 text-xs">Pick on map</Text>
+            <Text className="text-xs" style={{ color: theme.accent }}>
+              Pick on map
+            </Text>
           </TouchableOpacity>
           <TouchableOpacity
                 onPress={async () => {
@@ -201,9 +207,12 @@ export default function NewProjectScreen() {
                 Alert.alert("Location error", err?.message || "Unable to fetch current location.");
               }
             }}
-            className="px-3 py-2 rounded-lg bg-slate-700"
+            className="px-3 py-2 rounded-lg"
+            style={{ backgroundColor: theme.surfaceAlt }}
           >
-            <Text className="text-emerald-300 text-xs">Use my location</Text>
+            <Text className="text-xs" style={{ color: theme.accent }}>
+              Use my location
+            </Text>
           </TouchableOpacity>
         </View>
 
@@ -227,11 +236,14 @@ export default function NewProjectScreen() {
       </ScrollView>
       <Modal visible={showMapPicker} transparent animationType="slide">
         <View className="flex-1 bg-black/60 justify-center">
-          <View className="m-4 bg-slate-900 rounded-2xl overflow-hidden border border-slate-700">
-            <Text className="text-white text-base font-semibold px-4 pt-3">
+          <View
+            className="m-4 rounded-2xl overflow-hidden border"
+            style={{ backgroundColor: theme.appBg, borderColor: theme.border }}
+          >
+            <Text className="text-base font-semibold px-4 pt-3" style={{ color: theme.textPrimary }}>
               Tap to set location
             </Text>
-            <Text className="text-slate-400 text-xs px-4 pb-2">
+            <Text className="text-xs px-4 pb-2" style={{ color: theme.textSecondary }}>
               Uses react-native-maps if available; otherwise close and enter manually.
             </Text>
             <View className="px-4 pb-2">
@@ -288,20 +300,26 @@ export default function NewProjectScreen() {
                       setSearching(false);
                     }
                   }}
-                  className="px-3 py-2 rounded-lg bg-slate-700"
+                  className="px-3 py-2 rounded-lg"
+                  style={{ backgroundColor: theme.surfaceAlt }}
                 >
-                  <Text className="text-emerald-300 text-xs">{searching ? "Searching..." : "Search"}</Text>
+                  <Text className="text-xs" style={{ color: theme.accent }}>
+                    {searching ? "Searching..." : "Search"}
+                  </Text>
                 </TouchableOpacity>
               </View>
               {searchError ? (
-                <Text className="text-rose-300 text-[11px] mt-1">{searchError}</Text>
+                <Text className="text-[11px] mt-1" style={{ color: theme.error }}>
+                  {searchError}
+                </Text>
               ) : null}
               {searchResults.length ? (
-                <View className="mt-2 border border-slate-700 rounded-lg overflow-hidden">
+                <View className="mt-2 border rounded-lg overflow-hidden" style={{ borderColor: theme.border }}>
                   {searchResults.map((result) => (
                     <TouchableOpacity
                       key={result.place_id}
-                      className="px-3 py-2 border-b border-slate-700"
+                      className="px-3 py-2 border-b"
+                      style={{ borderBottomColor: theme.border }}
                       onPress={() => {
                         const lat = parseFloat(result.lat);
                         const lon = parseFloat(result.lon);
@@ -314,7 +332,9 @@ export default function NewProjectScreen() {
                         setSearchResults([]);
                       }}
                     >
-                      <Text className="text-slate-100 text-[11px]">{result.display_name}</Text>
+                      <Text className="text-[11px]" style={{ color: theme.textPrimary }}>
+                        {result.display_name}
+                      </Text>
                     </TouchableOpacity>
                   ))}
                 </View>
@@ -361,8 +381,8 @@ export default function NewProjectScreen() {
                   );
                 } catch (err) {
                   return (
-                    <View className="flex-1 items-center justify-center bg-slate-800">
-                      <Text className="text-slate-300 text-xs px-4 text-center">
+                    <View className="flex-1 items-center justify-center" style={{ backgroundColor: theme.surface }}>
+                      <Text className="text-xs px-4 text-center" style={{ color: theme.textSecondary }}>
                         Map component not available. Please install react-native-maps or enter coordinates manually.
                       </Text>
                     </View>
@@ -373,9 +393,12 @@ export default function NewProjectScreen() {
             <View className="flex-row justify-end gap-3 px-4 py-3">
               <TouchableOpacity
                 onPress={() => setShowMapPicker(false)}
-                className="px-3 py-2 rounded-lg bg-slate-700"
+                className="px-3 py-2 rounded-lg"
+                style={{ backgroundColor: theme.surfaceAlt }}
               >
-                <Text className="text-slate-200 text-xs">Cancel</Text>
+                <Text className="text-xs" style={{ color: theme.textSecondary }}>
+                  Cancel
+                </Text>
               </TouchableOpacity>
               <TouchableOpacity
                 onPress={() => {
@@ -400,13 +423,16 @@ export default function NewProjectScreen() {
                   }
                   setShowMapPicker(false);
                 }}
-                className="px-3 py-2 rounded-lg bg-emerald-600"
+                className="px-3 py-2 rounded-lg"
+                style={{ backgroundColor: theme.accent }}
               >
-                <Text className="text-white text-xs">Use location</Text>
+                <Text className="text-xs" style={{ color: theme.textPrimary }}>
+                  Use location
+                </Text>
               </TouchableOpacity>
             </View>
             {resolvedAddress ? (
-              <Text className="text-slate-400 text-[11px] px-4 pb-3">
+              <Text className="text-[11px] px-4 pb-3" style={{ color: theme.textSecondary }}>
                 Selected: {resolvedAddress}
               </Text>
             ) : null}

@@ -1,6 +1,7 @@
 // mobile/components/ui/Badge.tsx
 import React from "react";
 import { View, Text } from "react-native";
+import { useThemeStore, getThemeColors } from "../../store/themeStore";
 
 type BadgeVariant = "success" | "warning" | "danger" | "info" | "neutral";
 
@@ -33,14 +34,26 @@ const styles: Record<BadgeVariant, { container: string; text: string }> = {
 };
 
 export default function Badge({ label, variant = "neutral" }: BadgeProps) {
+  const { mode } = useThemeStore();
+  const theme = getThemeColors(mode);
+
   const styleSet = styles[variant];
+  const colorMap = {
+    success: theme.success,
+    warning: theme.warning,
+    danger: theme.error,
+    info: theme.accentBlue,
+    neutral: theme.textSecondary,
+  } as const;
 
   return (
     <View
-      className={`px-2 py-1 rounded-full ${styleSet.container}`}
+      className="px-2 py-1 rounded-full"
+      style={{ backgroundColor: `${colorMap[variant]}33` }}
     >
       <Text
-        className={`text-xs font-semibold ${styleSet.text}`}
+        className="text-xs font-semibold"
+        style={{ color: colorMap[variant] }}
       >
         {label}
       </Text>

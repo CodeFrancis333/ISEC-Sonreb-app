@@ -1,10 +1,9 @@
 import React from "react";
 import { View, Text, TouchableOpacity, ScrollView } from "react-native";
 import { Link, type Href } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
 import Screen from "../../components/layout/Screen";
-import { useAuthStore } from "../../store/authStore";
-import { useRouter } from "expo-router";
-import { Alert } from "react-native";
+import { useThemeStore, getThemeColors } from "../../store/themeStore";
 
 type Tile = {
   title: string;
@@ -43,26 +42,8 @@ const tiles: Tile[] = [
 const LinkAny = Link as unknown as React.ComponentType<any>;
 
 export default function MainHomeScreen() {
-  const { clearAuth } = useAuthStore();
-  const router = useRouter();
-
-  const handleSignOut = async () => {
-    Alert.alert(
-      "Log out?",
-      "Are you sure you want to log out?",
-      [
-        {
-          text: "Yes",
-          style: "default",
-          onPress: async () => {
-            await clearAuth();
-            router.replace("/(auth)/welcome");
-          },
-        },
-        { text: "No", style: "cancel" },
-      ]
-    );
-  };
+  const { mode, toggleMode } = useThemeStore();
+  const theme = getThemeColors(mode);
 
   return (
     <Screen showNav>
@@ -73,32 +54,43 @@ export default function MainHomeScreen() {
       >
         <View className="flex-row items-center justify-between mb-2">
           <View>
-            <Text className="text-sm text-emerald-400">SONREB Dashboard</Text>
-            <Text className="text-2xl font-bold text-white">Hi Engineer,</Text>
+            <Text className="text-sm" style={{ color: theme.accent }}>
+              SONREB Dashboard
+            </Text>
+            <Text className="text-2xl font-bold" style={{ color: theme.textPrimary }}>
+              Hi Engineer,
+            </Text>
           </View>
 
           <TouchableOpacity
-            onPress={handleSignOut}
-            className="rounded-full border border-emerald-500/60 px-3 py-1 active:bg-emerald-500/10"
+            onPress={toggleMode}
+            className="rounded-full px-3 py-2"
+            style={{ borderColor: theme.border, borderWidth: 1 }}
+            accessibilityLabel="Toggle theme"
           >
-            <Text className="text-emerald-200 text-sm font-semibold">
-              Sign out
-            </Text>
+            <Ionicons
+              name={mode === "dark" ? "moon" : "sunny"}
+              size={18}
+              color={mode === "dark" ? theme.accent : theme.accentBlue}
+            />
           </TouchableOpacity>
         </View>
 
-        <Text className="text-slate-300 mb-6">
+        <Text className="mb-6" style={{ color: theme.textSecondary }}>
           What would you like to do today?
         </Text>
 
         <View className="gap-3 mb-8">
           {tiles.map((tile) => (
             <LinkAny key={tile.title} href={tile.href} asChild>
-              <TouchableOpacity className="rounded-xl bg-slate-800 p-4 active:bg-slate-700">
-                <Text className="text-white font-semibold mb-1">
+              <TouchableOpacity
+                className="rounded-xl p-4"
+                style={{ backgroundColor: theme.surface }}
+              >
+                <Text className="font-semibold mb-1" style={{ color: theme.textPrimary }}>
                   {tile.title}
                 </Text>
-                <Text className="text-slate-400 text-sm">
+                <Text className="text-sm" style={{ color: theme.textMuted }}>
                   {tile.description}
                 </Text>
               </TouchableOpacity>
@@ -106,11 +98,14 @@ export default function MainHomeScreen() {
           ))}
         </View>
 
-        <View className="rounded-xl border border-emerald-600/50 bg-emerald-500/10 p-4">
-          <Text className="text-emerald-300 font-semibold mb-1">
+        <View
+          className="rounded-xl p-4"
+          style={{ borderColor: theme.accent, borderWidth: 1, backgroundColor: theme.surfaceAlt }}
+        >
+          <Text className="font-semibold mb-1" style={{ color: theme.accent }}>
             Quick Tip
           </Text>
-          <Text className="text-slate-200 text-sm">
+          <Text className="text-sm" style={{ color: theme.textSecondary }}>
             For reliable calibration, aim for at least 5 core strengths
             per structural element type and loading condition.
           </Text>

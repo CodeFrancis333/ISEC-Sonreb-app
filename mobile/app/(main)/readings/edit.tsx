@@ -8,6 +8,7 @@ import { listProjects, Project } from "../../../services/projectService";
 import { updateReading } from "../../../services/readingService";
 import { getActiveModel, CalibrationModel } from "../../../services/calibrationService";
 import { useRouter, useLocalSearchParams } from "expo-router";
+import { getThemeColors, useThemeStore } from "../../../store/themeStore";
 
 export default function EditReadingScreen() {
   const router = useRouter();
@@ -23,6 +24,8 @@ export default function EditReadingScreen() {
   }>();
   const readingId = params.id as string | undefined;
   const { token } = useAuthStore();
+  const { mode } = useThemeStore();
+  const theme = getThemeColors(mode);
 
   const [projects, setProjects] = useState<Project[]>([]);
   const [projectId, setProjectId] = useState<string | null>(params.projectId ? String(params.projectId) : null);
@@ -111,21 +114,25 @@ export default function EditReadingScreen() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: 150 }}
       >
-        <Text className="text-xl font-bold text-white mb-1">
+        <Text className="text-xl font-bold mb-1" style={{ color: theme.textPrimary }}>
           Edit Reading
         </Text>
-        <Text className="text-slate-300 mb-6">
+        <Text className="mb-6" style={{ color: theme.textSecondary }}>
           Update field measurements for UPV, RH, and optional carbonation.
         </Text>
 
         {loadingMeta ? (
           <View className="flex-row items-center gap-2">
-            <ActivityIndicator color="#34d399" />
-            <Text className="text-slate-400 text-sm">Loading projects...</Text>
+            <ActivityIndicator color={theme.accent} />
+            <Text className="text-sm" style={{ color: theme.textSecondary }}>
+              Loading projects...
+            </Text>
           </View>
         ) : (
           <>
-            <Text className="text-slate-200 text-sm mb-2">Project</Text>
+            <Text className="text-sm mb-2" style={{ color: theme.textPrimary }}>
+              Project
+            </Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} className="mb-3">
               <View className="flex-row gap-2">
                 {projects.map((p) => (
@@ -137,11 +144,16 @@ export default function EditReadingScreen() {
                         .then(setModelInfo)
                         .catch(() => setModelInfo(null));
                     }}
-                    className={`px-3 py-2 rounded-full border ${
-                      projectId === p.id ? "border-emerald-500 bg-emerald-500/10" : "border-slate-600"
-                    }`}
+                    className="px-3 py-2 rounded-full border"
+                    style={{
+                      borderColor: projectId === p.id ? theme.accent : theme.border,
+                      backgroundColor: projectId === p.id ? `${theme.accent}1A` : "transparent",
+                    }}
                   >
-                    <Text className={projectId === p.id ? "text-white text-xs" : "text-slate-200 text-xs"}>
+                    <Text
+                      className="text-xs"
+                      style={{ color: projectId === p.id ? theme.textPrimary : theme.textSecondary }}
+                    >
                       {p.name}
                     </Text>
                   </TouchableOpacity>
@@ -188,7 +200,9 @@ export default function EditReadingScreen() {
             ? `Above calibrated RH max (${modelInfo?.rh_max})`
             : "";
           return warning ? (
-            <Text className="text-rose-300 text-[11px] text-right -mt-2 mb-2">{warning}</Text>
+            <Text className="text-[11px] text-right -mt-2 mb-2" style={{ color: theme.error }}>
+              {warning}
+            </Text>
           ) : null;
         })()}
 
@@ -209,7 +223,9 @@ export default function EditReadingScreen() {
         )}
 
         <TouchableOpacity onPress={() => router.back()} className="mt-3">
-          <Text className="text-emerald-400 text-xs">Cancel</Text>
+          <Text className="text-xs" style={{ color: theme.accent }}>
+            Cancel
+          </Text>
         </TouchableOpacity>
       </ScrollView>
     </Screen>

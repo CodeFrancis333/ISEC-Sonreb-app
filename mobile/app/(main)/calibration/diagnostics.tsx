@@ -7,6 +7,7 @@ import { getCalibrationDiagnostics, CalibrationDiagnostics } from "../../../serv
 import { ScatterChart } from "../../../components/charts/ScatterChart";
 import { HistogramChart } from "../../../components/charts/HistogramChart";
 import { HistogramBin } from "../../../services/projectService";
+import { getThemeColors, useThemeStore } from "../../../store/themeStore";
 
 function buildResidualBins(residuals: number[], binCount = 8): HistogramBin[] {
   if (!residuals.length) return [];
@@ -32,6 +33,8 @@ function buildResidualBins(residuals: number[], binCount = 8): HistogramBin[] {
 export default function CalibrationDiagnosticsScreen() {
   const { projectId } = useLocalSearchParams<{ projectId?: string }>();
   const { token } = useAuthStore();
+  const { mode } = useThemeStore();
+  const theme = getThemeColors(mode);
   const [diag, setDiag] = useState<CalibrationDiagnostics | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -70,48 +73,64 @@ export default function CalibrationDiagnosticsScreen() {
   return (
     <Screen showNav>
       <ScrollView className="flex-1" showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 80 }}>
-        <Text className="text-xs text-emerald-400 uppercase">Calibration</Text>
-        <Text className="text-xl font-bold text-white mb-1">Diagnostics</Text>
-        <Text className="text-slate-400 text-xs mb-4">
+        <Text className="text-xs uppercase" style={{ color: theme.accent }}>
+          Calibration
+        </Text>
+        <Text className="text-xl font-bold mb-1" style={{ color: theme.textPrimary }}>
+          Diagnostics
+        </Text>
+        <Text className="text-xs mb-4" style={{ color: theme.textSecondary }}>
           Predicted vs measured strengths and residuals for the active model.
         </Text>
 
         {loading ? (
           <View className="items-center justify-center py-8">
-            <ActivityIndicator color="#34d399" />
+            <ActivityIndicator color={theme.accent} />
           </View>
         ) : error ? (
-          <Text className="text-rose-300 text-sm">{error}</Text>
+          <Text className="text-sm" style={{ color: theme.error }}>
+            {error}
+          </Text>
         ) : diag ? (
           <>
-            <View className="rounded-xl bg-slate-800 p-4 mb-4">
-              <Text className="text-slate-300 text-sm mb-1">Active Model</Text>
-              <Text className="text-white text-base font-semibold">
-                r² {diag.model.r2.toFixed(2)} • RMSE {diag.model.rmse?.toFixed(2) ?? "--"} MPa
+            <View className="rounded-xl p-4 mb-4" style={{ backgroundColor: theme.surface }}>
+              <Text className="text-sm mb-1" style={{ color: theme.textSecondary }}>
+                Active Model
               </Text>
-              <Text className="text-slate-400 text-xs mt-1">
-                Points used: {diag.model.points_used} • Carbonation: {diag.model.use_carbonation ? "Yes" : "No"}
+              <Text className="text-base font-semibold" style={{ color: theme.textPrimary }}>
+                r2 {diag.model.r2.toFixed(2)} | RMSE {diag.model.rmse?.toFixed(2) ?? "--"} MPa
               </Text>
-              <Text className="text-slate-500 text-[11px] mt-1">
-                UPV {diag.model.upv_min ?? "--"}–{diag.model.upv_max ?? "--"} m/s • RH {diag.model.rh_min ?? "--"}–{diag.model.rh_max ?? "--"}
+              <Text className="text-xs mt-1" style={{ color: theme.textSecondary }}>
+                Points used: {diag.model.points_used} | Carbonation: {diag.model.use_carbonation ? "Yes" : "No"}
+              </Text>
+              <Text className="text-[11px] mt-1" style={{ color: theme.textMuted }}>
+                UPV {diag.model.upv_min ?? "--"}-{diag.model.upv_max ?? "--"} m/s | RH {diag.model.rh_min ?? "--"}-{diag.model.rh_max ?? "--"}
               </Text>
             </View>
 
-            <View className="rounded-xl bg-slate-800 p-4 mb-4">
-              <Text className="text-slate-300 text-sm mb-2">Predicted vs Measured</Text>
+            <View className="rounded-xl p-4 mb-4" style={{ backgroundColor: theme.surface }}>
+              <Text className="text-sm mb-2" style={{ color: theme.textSecondary }}>
+                Predicted vs Measured
+              </Text>
               {scatterPoints.length ? (
                 <ScatterChart points={scatterPoints} />
               ) : (
-                <Text className="text-slate-400 text-xs">No points available.</Text>
+                <Text className="text-xs" style={{ color: theme.textSecondary }}>
+                  No points available.
+                </Text>
               )}
             </View>
 
-            <View className="rounded-xl bg-slate-800 p-4">
-              <Text className="text-slate-300 text-sm mb-2">Residuals (Predicted - Measured)</Text>
+            <View className="rounded-xl p-4" style={{ backgroundColor: theme.surface }}>
+              <Text className="text-sm mb-2" style={{ color: theme.textSecondary }}>
+                Residuals (Predicted - Measured)
+              </Text>
               {residualBins.length ? (
                 <HistogramChart bins={residualBins} />
               ) : (
-                <Text className="text-slate-400 text-xs">No residuals available.</Text>
+                <Text className="text-xs" style={{ color: theme.textSecondary }}>
+                  No residuals available.
+                </Text>
               )}
             </View>
           </>

@@ -6,10 +6,13 @@ import { useAuthStore } from "../../../store/authStore";
 import { listProjects, Project, listMembers, Member } from "../../../services/projectService";
 import { listCalibrationPoints, CalibrationPoint, deleteCalibrationPoint, getActiveModel, CalibrationModel } from "../../../services/calibrationService";
 import Select from "../../../components/ui/Select";
+import { getThemeColors, useThemeStore } from "../../../store/themeStore";
 
 export default function CalibrationPointsListScreen() {
   const router = useRouter();
   const { token } = useAuthStore();
+  const { mode } = useThemeStore();
+  const theme = getThemeColors(mode);
   const [projects, setProjects] = useState<Project[]>([]);
   const [selectedProject, setSelectedProject] = useState<string | null>(null);
   const [showProjectList, setShowProjectList] = useState(false);
@@ -114,9 +117,13 @@ export default function CalibrationPointsListScreen() {
     <Screen showNav>
       <View className="flex-row justify-between items-center mb-4">
         <View className="flex-1">
-          <Text className="text-xs text-emerald-400 uppercase">Calibration</Text>
-          <Text className="text-xl font-bold text-white">Calibration Points</Text>
-          <Text className="text-slate-400 text-xs mt-1">
+          <Text className="text-xs uppercase" style={{ color: theme.accent }}>
+            Calibration
+          </Text>
+          <Text className="text-xl font-bold" style={{ color: theme.textPrimary }}>
+            Calibration Points
+          </Text>
+          <Text className="text-xs mt-1" style={{ color: theme.textSecondary }}>
             You have {points.length} calibration points.
           </Text>
         </View>
@@ -129,21 +136,32 @@ export default function CalibrationPointsListScreen() {
         >
           <TouchableOpacity
             disabled={!selectedProject}
-            className={`rounded-xl px-3 py-2 ${selectedProject ? "bg-emerald-600" : "bg-slate-700"}`}
+            className="rounded-xl px-3 py-2"
+            style={{ backgroundColor: selectedProject ? theme.accent : theme.surfaceAlt }}
           >
-            <Text className="text-white text-xs font-semibold">+ Add</Text>
+            <Text className="text-xs font-semibold" style={{ color: theme.textPrimary }}>
+              + Add
+            </Text>
           </TouchableOpacity>
         </Link>
       </View>
 
       {!projects.length && (
-        <View className="bg-amber-500/10 border border-amber-500/40 rounded-lg p-3 mb-3">
-          <Text className="text-amber-200 text-xs">
+        <View
+          className="rounded-lg p-3 mb-3 border"
+          style={{ backgroundColor: theme.surfaceAlt, borderColor: theme.warning }}
+        >
+          <Text className="text-xs" style={{ color: theme.warning }}>
             No projects yet. Create a project first in the Projects tab, then return here to add calibration points.
           </Text>
           <Link href="/projects" asChild>
-            <TouchableOpacity className="mt-2 rounded-lg bg-amber-500/20 px-3 py-2">
-              <Text className="text-amber-100 text-xs">Go to Projects</Text>
+            <TouchableOpacity
+              className="mt-2 rounded-lg px-3 py-2"
+              style={{ backgroundColor: theme.surfaceAlt }}
+            >
+              <Text className="text-xs" style={{ color: theme.warning }}>
+                Go to Projects
+              </Text>
             </TouchableOpacity>
           </Link>
         </View>
@@ -156,7 +174,7 @@ export default function CalibrationPointsListScreen() {
         onPress={() => setShowProjectList((prev) => !prev)}
       />
       {showProjectList && projects.length > 0 && (
-        <View className="mb-3 rounded-xl border border-slate-700 bg-slate-800/90">
+        <View className="mb-3 rounded-xl border" style={{ borderColor: theme.border, backgroundColor: theme.surface }}>
           {projects.map((p) => (
             <TouchableOpacity
               key={p.id}
@@ -166,42 +184,57 @@ export default function CalibrationPointsListScreen() {
                 fetchPoints(p.id);
                 setShowProjectList(false);
               }}
-              className={`px-3 py-2 ${selectedProject === p.id ? "bg-emerald-500/10" : ""}`}
+              className="px-3 py-2"
+              style={{
+                backgroundColor: selectedProject === p.id ? `${theme.accent}1A` : "transparent",
+              }}
             >
-              <Text className="text-white text-sm">{p.name}</Text>
-              <Text className="text-slate-400 text-xs">{p.location}</Text>
+              <Text className="text-sm" style={{ color: theme.textPrimary }}>
+                {p.name}
+              </Text>
+              <Text className="text-xs" style={{ color: theme.textSecondary }}>
+                {p.location}
+              </Text>
             </TouchableOpacity>
           ))}
         </View>
       )}
 
-      <View className="rounded-xl bg-slate-800 p-3 mb-3">
-        <Text className="text-slate-200 text-xs">Requirements:</Text>
-        <Text className="text-slate-300 text-xs mt-1">
-          • Min {minRequired} points → basic model (UPV + RH)
+      <View className="rounded-xl p-3 mb-3" style={{ backgroundColor: theme.surface }}>
+        <Text className="text-xs" style={{ color: theme.textPrimary }}>
+          Requirements:
         </Text>
-        <Text className="text-slate-300 text-xs">
-          • Min {minCarbonation} points → model with carbonation
+        <Text className="text-xs mt-1" style={{ color: theme.textSecondary }}>
+          Minimum {minRequired} points - basic model (UPV + RH)
+        </Text>
+        <Text className="text-xs" style={{ color: theme.textSecondary }}>
+          Minimum {minCarbonation} points - model with carbonation
         </Text>
       </View>
 
       {activeModel ? (
-        <View className="rounded-xl bg-emerald-500/10 border border-emerald-500/30 p-3 mb-3">
-          <Text className="text-emerald-200 text-xs mb-1">Active Model</Text>
-          <Text className="text-white text-sm font-semibold">
-            r² {activeModel.r2.toFixed(2)} • RMSE {activeModel.rmse?.toFixed(2) ?? "--"} MPa
+        <View
+          className="rounded-xl border p-3 mb-3"
+          style={{ backgroundColor: theme.surfaceAlt, borderColor: theme.accent }}
+        >
+          <Text className="text-xs mb-1" style={{ color: theme.accent }}>
+            Active Model
           </Text>
-          <Text className="text-slate-300 text-xs mt-1">
-            Points used: {activeModel.points_used} • Carbonation: {activeModel.use_carbonation ? "Yes" : "No"}
+          <Text className="text-sm font-semibold" style={{ color: theme.textPrimary }}>
+            r2 {activeModel.r2.toFixed(2)} | RMSE {activeModel.rmse?.toFixed(2) ?? "--"} MPa
           </Text>
-          <Text className="text-slate-400 text-[11px] mt-1">
-            UPV {activeModel.upv_min ?? "--"}–{activeModel.upv_max ?? "--"} m/s • RH {activeModel.rh_min ?? "--"}–{activeModel.rh_max ?? "--"}
+          <Text className="text-xs mt-1" style={{ color: theme.textSecondary }}>
+            Points used: {activeModel.points_used} | Carbonation: {activeModel.use_carbonation ? "Yes" : "No"}
+          </Text>
+          <Text className="text-[11px] mt-1" style={{ color: theme.textMuted }}>
+            UPV {activeModel.upv_min ?? "--"}-{activeModel.upv_max ?? "--"} m/s | RH {activeModel.rh_min ?? "--"}-{activeModel.rh_max ?? "--"}
           </Text>
         </View>
       ) : null}
       {activeModel && selectedProject ? (
         <TouchableOpacity
-          className="rounded-xl bg-slate-800 px-4 py-3 mb-3"
+          className="rounded-xl px-4 py-3 mb-3"
+          style={{ backgroundColor: theme.surface }}
           onPress={() =>
             router.push({
               pathname: "/calibration/diagnostics",
@@ -209,22 +242,26 @@ export default function CalibrationPointsListScreen() {
             })
           }
         >
-          <Text className="text-white font-semibold">View Diagnostics</Text>
-          <Text className="text-slate-400 text-xs mt-1">
+          <Text className="font-semibold" style={{ color: theme.textPrimary }}>
+            View Diagnostics
+          </Text>
+          <Text className="text-xs mt-1" style={{ color: theme.textSecondary }}>
             See predicted vs measured, residuals, and model details.
           </Text>
         </TouchableOpacity>
       ) : null}
 
       {error ? (
-        <View className="bg-rose-500/10 border border-rose-500/40 rounded-lg p-3 mb-3">
-          <Text className="text-rose-100 text-xs">{error}</Text>
+        <View className="rounded-lg p-3 mb-3 border" style={{ backgroundColor: theme.surfaceAlt, borderColor: theme.error }}>
+          <Text className="text-xs" style={{ color: theme.error }}>
+            {error}
+          </Text>
         </View>
       ) : null}
 
       {loading ? (
         <View className="items-center justify-center py-6">
-          <ActivityIndicator color="#34d399" />
+          <ActivityIndicator color={theme.accent} />
         </View>
       ) : (
         <ScrollView
@@ -236,22 +273,22 @@ export default function CalibrationPointsListScreen() {
             {points.map((p, idx) => {
               const memberLabel = getMemberLabel(p);
               return (
-                <View key={p.id} className="rounded-xl bg-slate-800 p-4">
+                <View key={p.id} className="rounded-xl p-4" style={{ backgroundColor: theme.surface }}>
                   <View className="flex-row items-start justify-between">
-                    <Text className="text-white font-semibold">
+                    <Text className="font-semibold" style={{ color: theme.textPrimary }}>
                       Core: {p.core_fc.toFixed(1)} MPa
                     </Text>
-                    <Text className="text-emerald-200 text-xs font-semibold">
-                      {memberLabel} • #{idx + 1}
+                    <Text className="text-xs font-semibold" style={{ color: theme.accent }}>
+                      {memberLabel} - #{idx + 1}
                     </Text>
                   </View>
-                  <Text className="text-slate-400 text-xs mt-1">
-                    UPV {p.upv} m/s → RH {p.rh_index}{" "}
+                  <Text className="text-xs mt-1" style={{ color: theme.textSecondary }}>
+                    UPV {p.upv} m/s | RH {p.rh_index}
                     {p.carbonation_depth !== null && p.carbonation_depth !== undefined
-                      ? `→ Carbonation ${p.carbonation_depth} mm`
+                      ? ` | Carbonation ${p.carbonation_depth} mm`
                       : ""}
                   </Text>
-                  <Text className="text-slate-500 text-xs mt-1">
+                  <Text className="text-xs mt-1" style={{ color: theme.textMuted }}>
                     {new Date(p.created_at).toISOString().slice(0, 10)}
                   </Text>
                   <View className="flex-row gap-4 mt-2">
@@ -275,7 +312,9 @@ export default function CalibrationPointsListScreen() {
                       asChild
                     >
                       <TouchableOpacity>
-                        <Text className="text-emerald-300 text-xs">Edit</Text>
+                        <Text className="text-xs" style={{ color: theme.accent }}>
+                          Edit
+                        </Text>
                       </TouchableOpacity>
                     </Link>
                     <TouchableOpacity
@@ -297,22 +336,25 @@ export default function CalibrationPointsListScreen() {
                         );
                       }}
                     >
-                      <Text className="text-rose-300 text-xs">Delete</Text>
+                      <Text className="text-xs" style={{ color: theme.error }}>
+                        Delete
+                      </Text>
                     </TouchableOpacity>
                   </View>
                 </View>
               );
             })}
             {!points.length && (
-              <Text className="text-slate-400 text-xs">No calibration points yet for this project.</Text>
+              <Text className="text-xs" style={{ color: theme.textSecondary }}>
+                No calibration points yet for this project.
+              </Text>
             )}
           </View>
           <View className="mt-2">
             <TouchableOpacity
               disabled={!selectedProject}
-              className={`rounded-xl py-3 items-center ${
-                selectedProject ? "bg-emerald-600" : "bg-slate-700"
-              }`}
+              className="rounded-xl py-3 items-center"
+              style={{ backgroundColor: selectedProject ? theme.accent : theme.surfaceAlt }}
               onPress={() => {
                 if (!selectedProject) {
                   Alert.alert("Select a project first");
@@ -324,7 +366,9 @@ export default function CalibrationPointsListScreen() {
                 });
               }}
             >
-              <Text className="text-white font-semibold text-sm">Generate Model</Text>
+              <Text className="font-semibold text-sm" style={{ color: theme.textPrimary }}>
+                Generate Model
+              </Text>
             </TouchableOpacity>
           </View>
         </ScrollView>

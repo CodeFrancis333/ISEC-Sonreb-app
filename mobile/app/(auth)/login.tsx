@@ -5,10 +5,13 @@ import Screen from "../../components/layout/Screen";
 import Input from "../../components/ui/Input";
 import Button from "../../components/ui/Button";
 import { useAuth } from "../../hooks/useAuth";
+import { getThemeColors, useThemeStore } from "../../store/themeStore";
 
 export default function LoginScreen() {
   const { login, loading, error } = useAuth();
   const router = useRouter();
+  const { mode } = useThemeStore();
+  const theme = getThemeColors(mode);
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -28,19 +31,21 @@ export default function LoginScreen() {
   return (
     <Screen>
       <View className="flex-1 justify-center">
-        <Text className="text-xs text-emerald-400 uppercase mb-1">
+        <Text className="text-xs uppercase mb-1" style={{ color: theme.accent }}>
           Welcome back
         </Text>
-        <Text className="text-2xl font-bold text-white mb-2">
+        <Text className="text-2xl font-bold mb-2" style={{ color: theme.textPrimary }}>
           Login to SONREB App
         </Text>
-        <Text className="text-slate-400 text-xs mb-6">
+        <Text className="text-xs mb-6" style={{ color: theme.textSecondary }}>
           Continue estimating in-place concrete strength from your calibrated
           SonReb models.
         </Text>
 
         {error ? (
-          <Text className="text-red-400 text-xs mb-3">{error}</Text>
+          <Text className="text-xs mb-3" style={{ color: theme.error }}>
+            {error}
+          </Text>
         ) : null}
 
         <View className="gap-3 mb-4">
@@ -68,13 +73,15 @@ export default function LoginScreen() {
             onPress={() => router.push("/(auth)/register")}
             className="pr-2"
           >
-            <Text className="text-emerald-400 text-xs">
+            <Text className="text-xs" style={{ color: theme.accent }}>
               Create an account
             </Text>
           </TouchableOpacity>
 
           <TouchableOpacity onPress={() => router.push("/(auth)/forgot")}>
-            <Text className="text-slate-400 text-xs">Forgot password?</Text>
+            <Text className="text-xs" style={{ color: theme.textSecondary }}>
+              Forgot password?
+            </Text>
           </TouchableOpacity>
         </View>
       </View>
