@@ -224,7 +224,11 @@ export default function ReportsScreen() {
     }
   };
 
-  const handleDeleteFolder = async (id: number) => {
+  const handleDeleteFolder = async (id: number | string) => {
+    if (typeof id !== "number") {
+      Alert.alert("Derived folder", "Auto-derived folders cannot be deleted.");
+      return;
+    }
     Alert.alert("Delete folder?", "This will remove the folder reference. Readings are not deleted.", [
       { text: "Cancel", style: "cancel" },
       {
@@ -364,6 +368,7 @@ export default function ReportsScreen() {
       logo_url: logoUrl || null,
       signature_url: signatureUrl || null,
       notes: notes || null,
+      exclusion_notes: exclusionNotes || null,
     };
 
     try {
@@ -440,6 +445,10 @@ export default function ReportsScreen() {
   };
 
   const pickAndUpload = async (type: "logo" | "signature" | "photo") => {
+    if (!editingId) {
+      Alert.alert("Save report first", "Save the report before uploading files.");
+      return;
+    }
     try {
       const result = await DocumentPicker.getDocumentAsync({ copyToCacheDirectory: true });
       if (result.canceled || !result.assets?.length) return;
@@ -710,7 +719,9 @@ export default function ReportsScreen() {
                             {f.notes}
                           </Text>
                         ) : null}
-                        {!String(f.id).startsWith("project-") && !String(f.id).startsWith("auto-") ? (
+                        {!String(f.id).startsWith("project-") &&
+                        !String(f.id).startsWith("auto-") &&
+                        !f.derived ? (
                           <TouchableOpacity onPress={() => handleDeleteFolder(f.id)} className="mt-1">
                             <Text className="text-rose-300 text-[10px]">Delete</Text>
                           </TouchableOpacity>
@@ -733,7 +744,7 @@ export default function ReportsScreen() {
             </View>
           ) : null}
 
-          <Input label="Date Range" value={dateRange} onChangeText={setDateRange} placeholder="e.g. Dec 1–10, 2025" />
+          <Input label="Date Range" value={dateRange} onChangeText={setDateRange} placeholder="e.g. Dec 1-10, 2025" />
           <Input label="Company / Project By" value={company} onChangeText={setCompany} placeholder="e.g. ACME Testing" />
           <Input label="Client Name" value={clientName} onChangeText={setClientName} placeholder="Client name" />
           <Input label="Report Notes (optional)" value={notes} onChangeText={setNotes} placeholder="Notes" />
@@ -811,7 +822,7 @@ export default function ReportsScreen() {
                 Mean fc: {summary.summary?.mean_estimated_fc ? summary.summary.mean_estimated_fc.toFixed(2) : "N/A"} MPa
               </Text>
               <Text className="text-slate-100 text-xs">
-                Design fc: {summary.summary?.design_fc ?? "N/A"} MPa • Δ{" "}
+                Design fc: {summary.summary?.design_fc ?? "N/A"} MPa | Delta{" "}
                 {summary.summary?.design_fc && summary.summary?.mean_estimated_fc
                   ? (summary.summary.mean_estimated_fc - summary.summary.design_fc).toFixed(2)
                   : "N/A"}{" "}
@@ -933,10 +944,10 @@ export default function ReportsScreen() {
                     {summary.summary.warnings_breakdown.upv_high ?? 0}
                   </Text>
                   <Text className="text-slate-500 text-[10px] mt-1">
-                    {summary.summary.warnings_breakdown.rh_low ? "• RH below min range\n" : ""}
-                    {summary.summary.warnings_breakdown.rh_high ? "• RH above max range\n" : ""}
-                    {summary.summary.warnings_breakdown.upv_low ? "• UPV below min range\n" : ""}
-                    {summary.summary.warnings_breakdown.upv_high ? "• UPV above max range" : ""}
+                    {summary.summary.warnings_breakdown.rh_low ? "- RH below min range\n" : ""}
+                    {summary.summary.warnings_breakdown.rh_high ? "- RH above max range\n" : ""}
+                    {summary.summary.warnings_breakdown.upv_low ? "- UPV below min range\n" : ""}
+                    {summary.summary.warnings_breakdown.upv_high ? "- UPV above max range" : ""}
                   </Text>
                 </View>
               ) : null}

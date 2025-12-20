@@ -1,7 +1,7 @@
 // mobile/app/(auth)/welcome.tsx
 import React from "react";
 import { View, Text } from "react-native";
-import { Link } from "expo-router";
+import { useRouter } from "expo-router";
 import Screen from "../../components/layout/Screen";
 import Button from "../../components/ui/Button";
 import { getThemeColors, useThemeStore } from "../../store/themeStore";
@@ -9,6 +9,7 @@ import { getThemeColors, useThemeStore } from "../../store/themeStore";
 export default function WelcomeScreen() {
   const { mode } = useThemeStore();
   const theme = getThemeColors(mode);
+  const router = useRouter();
 
   return (
     <Screen>
@@ -32,17 +33,13 @@ export default function WelcomeScreen() {
         </Text>
 
         <View className="w-full gap-3 mb-4">
-          <Link href="/(auth)/login" asChild>
-            <Button>
-              Login
-            </Button>
-          </Link>
+          <Button onPress={() => router.push("/(auth)/login")} className="w-full">
+            Login
+          </Button>
 
-          <Link href="/(auth)/register" asChild>
-            <Button variant="secondary">
-              Create Account
-            </Button>
-          </Link>
+          <Button onPress={() => router.push("/(auth)/register")} variant="outline" className="w-full">
+            Create Account
+          </Button>
         </View>
 
         <Text className="text-xs mt-4 text-center px-8" style={{ color: theme.textMuted }}>

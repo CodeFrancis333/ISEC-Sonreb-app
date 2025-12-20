@@ -7,27 +7,40 @@ import { getReading, Reading } from "../../../services/readingService";
 import { getProject, listMembers, Member } from "../../../services/projectService";
 import { getActiveModel, CalibrationModel } from "../../../services/calibrationService";
 import { useAuthStore } from "../../../store/authStore";
+import { getThemeColors, useThemeStore } from "../../../store/themeStore";
 
 type R2Bucket = { label: string; desc: string; color: string };
 
-function r2Bucket(r2?: number | null): R2Bucket {
-  if (r2 === undefined || r2 === null) return { label: "N/A", desc: "No correlation info", color: "text-slate-400" };
-  if (r2 >= 0.9) return { label: "Excellent (0.90–1.00)", desc: "High confidence; best", color: "text-emerald-300" };
-  if (r2 >= 0.8) return { label: "Very Good (0.80–0.89)", desc: "Acceptable; typical goal", color: "text-emerald-200" };
-  if (r2 >= 0.7) return { label: "Fair (0.70–0.79)", desc: "Marginal; use with caution", color: "text-amber-300" };
-  return { label: "Poor (<0.70)", desc: "Unreliable; collect more data", color: "text-rose-300" };
+type ThemeColors = ReturnType<typeof getThemeColors>;
+
+function r2Bucket(r2: number | null | undefined, theme: ThemeColors): R2Bucket {
+  if (r2 === undefined || r2 === null) {
+    return { label: "N/A", desc: "No correlation info", color: theme.textSecondary };
+  }
+  if (r2 >= 0.9) {
+    return { label: "Excellent (0.90-1.00)", desc: "High confidence; best", color: theme.success };
+  }
+  if (r2 >= 0.8) {
+    return { label: "Very Good (0.80-0.89)", desc: "Acceptable; typical goal", color: theme.success };
+  }
+  if (r2 >= 0.7) {
+    return { label: "Fair (0.70-0.79)", desc: "Marginal; use with caution", color: theme.warning };
+  }
+  return { label: "Poor (<0.70)", desc: "Unreliable; collect more data", color: theme.error };
 }
 
-function ratingColor(rating?: string) {
-  if (rating === "GOOD") return "text-emerald-300";
-  if (rating === "FAIR") return "text-amber-300";
-  if (rating === "POOR") return "text-rose-300";
-  return "text-slate-300";
+function ratingColor(rating: string | undefined, theme: ThemeColors) {
+  if (rating === "GOOD") return theme.success;
+  if (rating === "FAIR") return theme.warning;
+  if (rating === "POOR") return theme.error;
+  return theme.textSecondary;
 }
 
 export default function ReadingDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { token } = useAuthStore();
+  const { mode } = useThemeStore();
+  const theme = getThemeColors(mode);
 
   const [reading, setReading] = useState<Reading | null>(null);
   const [projectName, setProjectName] = useState<string>("");
@@ -85,8 +98,8 @@ export default function ReadingDetailScreen() {
     (reading as any)?.member ||
     "Reading";
   const title = projectName
-    ? `${projectName} • ${memberLabel}${reading?.location_tag ? ` • ${reading.location_tag}` : ""}`
-    : `${memberLabel}${reading?.location_tag ? ` • ${reading.location_tag}` : ""}`;
+    ? `${projectName} - ${memberLabel}${reading?.location_tag ? ` - ${reading.location_tag}` : ""}`
+    : `${memberLabel}${reading?.location_tag ? ` - ${reading.location_tag}` : ""}`;
 
   const computedFromModel = useMemo(() => {
     if (!model || !reading) return null;
@@ -98,83 +111,120 @@ export default function ReadingDetailScreen() {
   }, [model, reading]);
 
   const eqString = model
-    ? `fc = ${model.a0.toFixed(4)} · UPV^${model.a1.toFixed(3)} · RH^${model.a2.toFixed(3)}${
-        model.use_carbonation && model.a3 ? ` · Carb^${model.a3.toFixed(3)}` : ""
+    ? `fc = ${model.a0.toFixed(4)} * UPV^${model.a1.toFixed(3)} * RH^${model.a2.toFixed(3)}${
+        model.use_carbonation && model.a3 ? ` * Carb^${model.a3.toFixed(3)}` : ""
       }`
-    : "fc = 0.005·UPV + 0.25·RH (default)";
+    : "fc = 0.005*UPV + 0.25*RH (default)";
 
   const r2 = model?.r2 ?? null;
-  const r2Info = r2Bucket(r2);
+  const r2Info = r2Bucket(r2, theme);
 
   return (
     <Screen showNav>
       <ScrollView className="flex-1" contentContainerStyle={{ paddingBottom: 60 }}>
-        <Text className="text-xs text-emerald-400 uppercase mb-1">Reading Detail</Text>
-        <Text className="text-xl font-bold text-white mb-1">{title}</Text>
-        <Text className="text-slate-400 text-xs mb-4">Reading ID: {id}</Text>
+        <Text className="text-xs uppercase mb-1" style={{ color: theme.accent }}>
+          Reading Detail
+        </Text>
+        <Text className="text-xl font-bold mb-1" style={{ color: theme.textPrimary }}>
+          {title}
+        </Text>
+        <Text className="text-xs mb-4" style={{ color: theme.textSecondary }}>
+          Reading ID: {id}
+        </Text>
 
         {loading ? (
           <View className="items-center justify-center py-8">
-            <ActivityIndicator color="#34d399" />
+            <ActivityIndicator color={theme.accent} />
           </View>
         ) : error ? (
-          <Text className="text-rose-300 text-sm">{error}</Text>
+          <Text className="text-sm" style={{ color: theme.error }}>
+            {error}
+          </Text>
         ) : reading ? (
           <>
-            <View className="rounded-xl bg-slate-800 p-4 mb-3">
-              <Text className="text-slate-300 text-sm mb-1">Estimated fc'</Text>
-              <Text className={`text-white text-2xl font-semibold mb-1 ${ratingColor(reading.rating)}`}>
+            <View className="rounded-xl p-4 mb-3" style={{ backgroundColor: theme.surface }}>
+              <Text className="text-sm mb-1" style={{ color: theme.textSecondary }}>
+                Estimated fc'
+              </Text>
+              <Text className="text-2xl font-semibold mb-1" style={{ color: ratingColor(reading.rating, theme) }}>
                 {(reading.estimated_fc ?? 0).toFixed(2)} MPa
               </Text>
-              <Text className="text-slate-400 text-xs">
-                Rating: <Text className={ratingColor(reading.rating)}>{reading.rating}</Text> • Model: {reading.model_used}
+              <Text className="text-xs" style={{ color: theme.textSecondary }}>
+                Rating: <Text style={{ color: ratingColor(reading.rating, theme) }}>{reading.rating}</Text> | Model: {reading.model_used}
               </Text>
             </View>
 
-            <View className="rounded-xl bg-slate-800 p-4 mb-3">
-              <Text className="text-slate-300 text-sm mb-2">Equation & Computation</Text>
-              <Text className="text-slate-200 text-xs mb-1">Equation: {eqString}</Text>
-              <Text className="text-slate-400 text-xs">
-                Inputs → UPV {reading.upv} m/s, RH {reading.rh_index}
+            <View className="rounded-xl p-4 mb-3" style={{ backgroundColor: theme.surface }}>
+              <Text className="text-sm mb-2" style={{ color: theme.textSecondary }}>
+                Equation & Computation
+              </Text>
+              <Text className="text-xs mb-1" style={{ color: theme.textPrimary }}>
+                Equation: {eqString}
+              </Text>
+              <Text className="text-xs" style={{ color: theme.textSecondary }}>
+                Inputs - UPV {reading.upv} m/s, RH {reading.rh_index}
                 {reading.carbonation_depth ? `, Carb ${reading.carbonation_depth} mm` : ""}
               </Text>
-              <Text className="text-slate-200 text-xs mt-1">
-                Computation → fc_est = {model ? computedFromModel?.toFixed(2) ?? "N/A" : (reading.estimated_fc ?? 0).toFixed(2)} MPa
+              <Text className="text-xs mt-1" style={{ color: theme.textPrimary }}>
+                Computation - fc_est = {model ? computedFromModel?.toFixed(2) ?? "N/A" : (reading.estimated_fc ?? 0).toFixed(2)} MPa
               </Text>
               {model ? (
-                <Text className="text-slate-400 text-xs mt-1">
-                  r² {r2?.toFixed(2) ?? "N/A"} • RMSE {model.rmse?.toFixed(2) ?? "N/A"} MPa • Points {model.points_used} • Carbonation:{" "}
-                  {model.use_carbonation ? "Yes" : "No"}
+                <Text className="text-xs mt-1" style={{ color: theme.textSecondary }}>
+                  r2 {r2?.toFixed(2) ?? "N/A"} | RMSE {model.rmse?.toFixed(2) ?? "N/A"} MPa | Points {model.points_used} | Carbonation: {model.use_carbonation ? "Yes" : "No"}
                 </Text>
               ) : null}
             </View>
 
-            <View className="rounded-xl bg-slate-800 p-4 mb-3">
-              <Text className="text-slate-300 text-sm mb-2">Inputs</Text>
-              <Text className="text-slate-400 text-xs">UPV: {reading.upv} m/s • RH: {reading.rh_index}</Text>
+            <View className="rounded-xl p-4 mb-3" style={{ backgroundColor: theme.surface }}>
+              <Text className="text-sm mb-2" style={{ color: theme.textSecondary }}>
+                Inputs
+              </Text>
+              <Text className="text-xs" style={{ color: theme.textSecondary }}>
+                UPV: {reading.upv} m/s | RH: {reading.rh_index}
+              </Text>
               {reading.carbonation_depth !== null && reading.carbonation_depth !== undefined ? (
-                <Text className="text-slate-400 text-xs mt-1">Carbonation: {reading.carbonation_depth} mm</Text>
+                <Text className="text-xs mt-1" style={{ color: theme.textSecondary }}>
+                  Carbonation: {reading.carbonation_depth} mm
+                </Text>
               ) : null}
               {reading.location_tag ? (
-                <Text className="text-slate-500 text-xs mt-2">Location: {reading.location_tag}</Text>
+                <Text className="text-xs mt-2" style={{ color: theme.textMuted }}>
+                  Location: {reading.location_tag}
+                </Text>
               ) : null}
             </View>
 
-            <View className="rounded-xl bg-slate-800 p-4 mb-3">
-              <Text className="text-slate-300 text-sm mb-2">Rating Brackets</Text>
-              <Text className="text-emerald-300 text-xs">GOOD: ratio ≥ 0.85 (or ≥21 MPa if no design fc)</Text>
-              <Text className="text-amber-300 text-xs">FAIR: ratio ≥ 0.70 (or ≥17 MPa if no design fc)</Text>
-              <Text className="text-rose-300 text-xs">POOR: below those thresholds</Text>
+            <View className="rounded-xl p-4 mb-3" style={{ backgroundColor: theme.surface }}>
+              <Text className="text-sm mb-2" style={{ color: theme.textSecondary }}>
+                Rating Brackets
+              </Text>
+              <Text className="text-xs" style={{ color: theme.success }}>
+                GOOD: ratio greater or equal 0.85 (or 21 MPa if no design fc)
+              </Text>
+              <Text className="text-xs" style={{ color: theme.warning }}>
+                FAIR: ratio greater or equal 0.70 (or 17 MPa if no design fc)
+              </Text>
+              <Text className="text-xs" style={{ color: theme.error }}>
+                POOR: below those thresholds
+              </Text>
             </View>
 
-            <View className="rounded-xl bg-slate-800 p-4 mb-4">
-              <Text className="text-slate-300 text-sm mb-1">Model Reliability</Text>
-              <Text className={`${r2Info.color} text-xs`}>{r2Info.label}</Text>
-              <Text className="text-slate-400 text-xs">{r2Info.desc}</Text>
+            <View className="rounded-xl p-4 mb-4" style={{ backgroundColor: theme.surface }}>
+              <Text className="text-sm mb-1" style={{ color: theme.textSecondary }}>
+                Model Reliability
+              </Text>
+              <Text className="text-xs" style={{ color: r2Info.color }}>
+                {r2Info.label}
+              </Text>
+              <Text className="text-xs" style={{ color: theme.textSecondary }}>
+                {r2Info.desc}
+              </Text>
             </View>
           </>
         ) : (
-          <Text className="text-slate-400 text-sm">No data.</Text>
+          <Text className="text-sm" style={{ color: theme.textSecondary }}>
+            No data.
+          </Text>
         )}
       </ScrollView>
     </Screen>
